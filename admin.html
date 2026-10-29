@@ -121,48 +121,76 @@
       </div>
     </div>
 
-    <!-- BARRA DE CONTROLE -->
-    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3 w-full sm:w-auto">
-        <input
-          type="text"
-          id="adminSearch"
-          onkeyup="renderAdminTable()"
-          placeholder="Buscar no painel..."
-          class="bg-gray-50 border border-gray-200 text-xs py-2.5 px-4 rounded-xl w-full sm:w-72 focus:outline-none focus:border-[#FF5500]"
-        >
+    <!-- MENU DE NAVEGAÇÃO INTERNA (ABAS) -->
+    <div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
+      <button onclick="switchTab('products')" id="tabProductsBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
+        <i class="fa-solid fa-boxes-stacked"></i> Catálogo de Produtos
+      </button>
+      <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
+        <i class="fa-solid fa-receipt text-[#FF5500]"></i> Pedidos & Vendas <span id="ordersBadge" class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
+      </button>
+    </div>
+
+    <!-- ABA 1: CATÁLOGO DE PRODUTOS -->
+    <div id="tabProductsView">
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <input
+            type="text"
+            id="adminSearch"
+            onkeyup="renderAdminTable()"
+            placeholder="Buscar no painel..."
+            class="bg-gray-50 border border-gray-200 text-xs py-2.5 px-4 rounded-xl w-full sm:w-72 focus:outline-none focus:border-[#FF5500]"
+          >
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <button onclick="openFirebaseConfigModal()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all border border-blue-200 flex items-center gap-2" title="Configurar Firebase Firestore para sincronização em nuvem">
+            <i class="fa-solid fa-cloud"></i> Configurar Firebase
+          </button>
+          <button onclick="resetDefaultCatalog()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all border border-gray-200 flex items-center gap-2">
+            <i class="fa-solid fa-rotate-left"></i> Restaurar Padrão
+          </button>
+          <button onclick="openAddProductModal()" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Novo Produto
+          </button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-        <button onclick="openFirebaseConfigModal()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all border border-blue-200 flex items-center gap-2" title="Configurar Firebase Firestore para sincronização em nuvem">
-          <i class="fa-solid fa-cloud"></i> Configurar Firebase
-        </button>
-        <button onclick="resetDefaultCatalog()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all border border-gray-200 flex items-center gap-2">
-          <i class="fa-solid fa-rotate-left"></i> Restaurar Padrão
-        </button>
-        <button onclick="openAddProductModal()" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
-          <i class="fa-solid fa-plus"></i> Novo Produto
-        </button>
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+                <th class="p-4">Produto</th>
+                <th class="p-4">Categoria</th>
+                <th class="p-4">Selo / Tag</th>
+                <th class="p-4">Preço</th>
+                <th class="p-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="adminProductsTable" class="divide-y divide-gray-100">
+              <!-- Inserido via JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- TABELA DE PRODUTOS -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
-              <th class="p-4">Produto</th>
-              <th class="p-4">Categoria</th>
-              <th class="p-4">Selo / Tag</th>
-              <th class="p-4">Preço</th>
-              <th class="p-4 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="adminProductsTable" class="divide-y divide-gray-100">
-            <!-- Inserido via JS -->
-          </tbody>
-        </table>
+    <!-- ABA 2: PEDIDOS E VENDAS -->
+    <div id="tabOrdersView" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold text-gray-900 text-base">Acompanhamento de Vendas & Clientes</h3>
+          <p class="text-xs text-gray-500">Veja quem comprou, o valor pago, os itens e o endereço completo de entrega.</p>
+        </div>
+        <button onclick="loadOrders()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2">
+          <i class="fa-solid fa-arrows-rotate text-[#FF5500]"></i> Atualizar Pedidos
+        </button>
+      </div>
+
+      <div id="adminOrdersContainer" class="space-y-4">
+        <!-- Renderizado via JS -->
       </div>
     </div>
   </main>
@@ -312,6 +340,119 @@
       } catch(e) {
         console.warn("Erro ao inicializar Firebase no admin:", e);
       }
+    }
+
+    let ordersList = [];
+
+    function switchTab(tab) {
+      const btnP = document.getElementById('tabProductsBtn');
+      const btnO = document.getElementById('tabOrdersBtn');
+      const viewP = document.getElementById('tabProductsView');
+      const viewO = document.getElementById('tabOrdersView');
+
+      if (tab === 'products') {
+        btnP.className = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2";
+        btnO.className = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2";
+        viewP.classList.remove('hidden');
+        viewO.classList.add('hidden');
+      } else {
+        btnO.className = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2";
+        btnP.className = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2";
+        viewO.classList.remove('hidden');
+        viewP.classList.add('hidden');
+        loadOrders();
+      }
+    }
+
+    function loadOrders() {
+      const stored = localStorage.getItem('malala_orders');
+      if (stored) {
+        try { ordersList = JSON.parse(stored); } catch(e) {}
+      }
+
+      if (db) {
+        db.collection('orders').get().then(snap => {
+          const remoteList = [];
+          snap.forEach(doc => {
+            remoteList.push({ id: doc.id, ...doc.data() });
+          });
+          if (remoteList.length > 0) {
+            ordersList = remoteList;
+          }
+          renderOrdersTable();
+        }).catch(err => {
+          console.warn('Erro ao carregar pedidos do Firestore:', err);
+          renderOrdersTable();
+        });
+      } else {
+        renderOrdersTable();
+      }
+    }
+
+    function renderOrdersTable() {
+      const container = document.getElementById('adminOrdersContainer');
+      document.getElementById('ordersBadge').innerText = ordersList.length;
+
+      if (ordersList.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white p-12 text-center rounded-2xl border border-gray-200">
+            <i class="fa-solid fa-receipt text-4xl text-gray-300 mb-3"></i>
+            <p class="text-sm font-bold text-gray-700">Nenhum pedido registrado ainda</p>
+            <p class="text-xs text-gray-400 mt-1">Os pedidos feitos via Pagar Online aparecerão detalhados nesta aba.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = ordersList.map(ord => {
+        const payer = ord.payer || {};
+        const addr = payer.address || {};
+        const addrText = addr.street
+          ? `${addr.street}, ${addr.number || 'S/N'} - ${addr.neighborhood || ''}, ${addr.city || ''} (CEP: ${addr.cep || ''})`
+          : 'Endereço não informado';
+
+        const statusClass = ord.status === 'Pago'
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+          : 'bg-amber-100 text-amber-800 border-amber-200';
+
+        const itemsSummary = (ord.items || []).map(i => `
+          <div class="flex items-center justify-between text-xs py-1 border-b border-gray-100 last:border-0">
+            <span class="font-bold text-gray-800">${i.quantity || 1}x ${i.title}</span>
+            <span class="text-gray-600 font-mono">R$ ${((i.price || 0) * (i.quantity || 1)).toFixed(2).replace('.', ',')}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <span class="font-mono text-xs font-black bg-gray-100 px-3 py-1 rounded-lg text-gray-700">${ord.id}</span>
+                <span class="text-xs font-bold text-gray-900">${payer.name || 'Cliente'}</span>
+                <span class="text-xs text-gray-400">(${payer.email || 'Sem e-mail'})</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] uppercase font-bold px-3 py-1 rounded-full border ${statusClass}">${ord.status || 'Pendente'}</span>
+                <span class="text-xs font-black text-[#FF5500]">R$ ${(ord.total || ord.totalAmount || 0).toFixed(2).replace('.', ',')}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
+              <div>
+                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1"><i class="fa-solid fa-location-dot text-[#FF5500]"></i> Endereço de Entrega</p>
+                <p class="text-xs text-gray-700 font-medium leading-relaxed bg-gray-50 p-2.5 rounded-xl border border-gray-100">${addrText}</p>
+                <p class="text-[11px] text-gray-500 mt-1"><strong>CPF:</strong> ${payer.cpf || 'Não informado'} | <strong>Pagamento:</strong> ${ord.paymentMethod || 'PIX'}</p>
+              </div>
+
+              <div>
+                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1"><i class="fa-solid fa-box text-[#FF5500]"></i> Itens do Pedido</p>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100 space-y-0.5">
+                  ${itemsSummary}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
