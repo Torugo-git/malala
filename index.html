@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MALALA STORE | Tecnologia • Beleza • Perfumes</title>
-  
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <script>
     tailwind.config = {
       theme: {
@@ -22,9 +22,9 @@
       }
     }
   </script>
-  
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -122,6 +122,19 @@
 </head>
 <body class="bg-white text-gray-900 font-sans antialiased selection:bg-[#FF5500] selection:text-white relative">
 
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="fixed top-5 right-5 z-50 transform translate-x-full opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-700">
+      <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+        <i class="fa-solid fa-circle-check text-base"></i>
+      </div>
+      <div>
+        <p class="text-xs font-bold" id="toastTitle">Item adicionado!</p>
+        <p class="text-[10px] text-gray-300" id="toastMessage">Produto adicionado ao seu carrinho com sucesso.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- TOP BAR COMERCIAL -->
   <div class="bg-gray-900 text-gray-200 border-b border-gray-800 text-xs py-2 px-4">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -140,7 +153,7 @@
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-20 gap-4">
-        
+
         <!-- LOGO CIRCULAR -->
         <div class="flex items-center gap-3 cursor-pointer" onclick="selectCategory('Todos')">
           <img src="logo-circle.png" alt="MALALA STORE" class="w-12 h-12 object-contain rounded-full shadow-md shadow-[#FF5500]/20 border border-[#FF5500]/30 hover:scale-105 transition-transform">
@@ -150,16 +163,16 @@
           </div>
         </div>
 
-        <!-- BARRA DE BUSCA CENTRAL -->
+        <!-- BARRA DE BUSCA CENTRAL (DESKTOP) -->
         <div class="flex-1 max-w-xl relative hidden md:block">
-          <input 
-            type="text" 
-            id="searchInput" 
-            onkeyup="filterProducts()" 
-            placeholder="O que você procura em Tecnologia, Beleza ou Perfumes?" 
+          <input
+            type="text"
+            id="searchInput"
+            onkeyup="filterProducts()"
+            placeholder="O que você procura em Tecnologia, Beleza ou Perfumes?"
             class="w-full bg-gray-100 border border-gray-200 text-sm text-gray-900 rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-[#FF5500] transition-all placeholder-gray-400 shadow-inner"
           >
-          <button class="absolute right-2 top-2 bg-[#FF5500] hover:bg-[#E64A00] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
+          <button onclick="filterProducts()" class="absolute right-2 top-2 bg-[#FF5500] hover:bg-[#E64A00] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
             <i class="fa-solid fa-magnifying-glass"></i>
           </button>
         </div>
@@ -179,6 +192,23 @@
         </div>
 
       </div>
+
+      <!-- BARRA DE BUSCA MOBILE -->
+      <div class="pb-3 md:hidden">
+        <div class="relative">
+          <input
+            type="text"
+            id="searchInputMobile"
+            onkeyup="syncAndFilterMobile()"
+            placeholder="Buscar perfume, tech ou beleza..."
+            class="w-full bg-gray-100 border border-gray-200 text-xs text-gray-900 rounded-xl py-2.5 pl-3 pr-10 focus:outline-none focus:border-[#FF5500] transition-all placeholder-gray-400"
+          >
+          <button onclick="filterProducts()" class="absolute right-2 top-2 text-[#FF5500] px-2 py-0.5 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+      </div>
+
     </div>
   </header>
 
@@ -196,7 +226,7 @@
       <div class="brand-logo" onclick="filterByBrand('Samsung')"><span>SAMSUNG</span></div>
       <div class="brand-logo" onclick="filterByBrand('Carolina Herrera')"><span>CAROLINA HERRERA</span></div>
       <div class="brand-logo" onclick="filterByBrand('Xiaomi')"><span>XIAOMI</span></div>
-      <div class="brand-logo" onclick="filterByBrand('Paco Rabanne')"><span>PACCO RABANNE</span></div>
+      <div class="brand-logo" onclick="filterByBrand('Paco Rabanne')"><span>PACO RABANNE</span></div>
       <div class="brand-logo" onclick="filterByBrand('Azzaro')"><span>AZZARO</span></div>
 
       <!-- Duplicado para rolagem sem quebra -->
@@ -208,31 +238,33 @@
       <div class="brand-logo" onclick="filterByBrand('Samsung')"><span>SAMSUNG</span></div>
       <div class="brand-logo" onclick="filterByBrand('Carolina Herrera')"><span>CAROLINA HERRERA</span></div>
       <div class="brand-logo" onclick="filterByBrand('Xiaomi')"><span>XIAOMI</span></div>
-      <div class="brand-logo" onclick="filterByBrand('Paco Rabanne')"><span>PACCO RABANNE</span></div>
+      <div class="brand-logo" onclick="filterByBrand('Paco Rabanne')"><span>PACO RABANNE</span></div>
       <div class="brand-logo" onclick="filterByBrand('Azzaro')"><span>AZZARO</span></div>
     </div>
   </div>
 
-  <!-- MENU DAS 3 CATEGORIAS -->
+  <!-- MENU DAS 3 CATEGORIAS E MARCAS EM ALTA -->
   <div class="bg-gray-50 border-b border-gray-200 py-4">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-3">
       <div class="flex items-center justify-center sm:justify-start gap-2 overflow-x-auto scrollbar-none" id="categoriesContainer">
         <!-- Renderizado via JS -->
       </div>
 
-      <!-- 1. RECURSO: FILTRO RÁPIDO POR MARCAS POPULARES -->
+      <!-- FILTRO RÁPIDO POR MARCAS POPULARES -->
       <div class="flex items-center gap-2 overflow-x-auto scrollbar-none pt-2 border-t border-gray-200/60 text-xs">
         <span class="text-gray-400 font-medium whitespace-nowrap">Marcas em alta:</span>
-        <button onclick="filterByBrand('Lattafa')" class="px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Lattafa</button>
-        <button onclick="filterByBrand('Armaf')" class="px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Armaf</button>
-        <button onclick="filterByBrand('Chanel')" class="px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Chanel</button>
-        <button onclick="filterByBrand('Apple')" class="px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Apple</button>
-        <button onclick="filterByBrand('Xiaomi')" class="px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Xiaomi</button>
+        <button onclick="filterByBrand('Lattafa')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Lattafa</button>
+        <button onclick="filterByBrand('Armaf')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Armaf</button>
+        <button onclick="filterByBrand('Chanel')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Chanel</button>
+        <button onclick="filterByBrand('Dior')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Dior</button>
+        <button onclick="filterByBrand('Apple')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Apple</button>
+        <button onclick="filterByBrand('Xiaomi')" class="brand-btn px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:border-[#FF5500] hover:text-[#FF5500] transition-colors whitespace-nowrap">Xiaomi</button>
+        <button onclick="selectCategory('Todos')" class="px-2.5 py-1 rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors whitespace-nowrap">Limpar Filtros</button>
       </div>
     </div>
   </div>
 
-  <!-- 2. RECURSO: SELOS DE GARANTIA E CONFIANÇA -->
+  <!-- SELOS DE GARANTIA E CONFIANÇA -->
   <section class="py-6 bg-white border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -284,7 +316,7 @@
         <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight" id="categoryTitle">Todas as Categorias</h2>
         <p class="text-xs text-gray-500 mt-0.5" id="productsCountText">Exibindo catálogo completo</p>
       </div>
-      
+
       <div class="flex items-center gap-2">
         <select id="sortSelect" onchange="sortProducts()" class="bg-gray-100 border border-gray-200 text-xs text-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-[#FF5500]">
           <option value="default">Ordenar por: Relevância</option>
@@ -300,7 +332,7 @@
     </div>
   </main>
 
-  <!-- 3. RECURSO: PROVA SOCIAL ("QUEM COMPRA, RECOMENDA") -->
+  <!-- PROVA SOCIAL ("QUEM COMPRA, RECOMENDA") -->
   <section class="py-12 bg-gray-50 border-t border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center max-w-xl mx-auto mb-8">
@@ -368,7 +400,7 @@
         <p class="font-bold text-white text-sm mb-2">Atendimento WhatsApp</p>
         <p class="text-gray-400 mb-3">Peça pelo WhatsApp ou tire dúvidas diretamente com nossa equipe.</p>
         <a href="https://wa.me/5521992663800" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-xs hover:bg-emerald-500 transition-all">
-          <i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp
+          <i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp (+55 21 99266-3800)
         </a>
       </div>
     </div>
@@ -377,10 +409,10 @@
     </div>
   </footer>
 
-  <!-- 4. RECURSO: BOTÃO FLUTUANTE DO WHATSAPP -->
-  <a 
-    href="https://wa.me/5521992663800?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20Malala%20Store%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida." 
-    target="_blank" 
+  <!-- BOTÃO FLUTUANTE DO WHATSAPP -->
+  <a
+    href="https://wa.me/5521992663800?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20Malala%20Store%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida."
+    target="_blank"
     class="fixed bottom-6 right-6 z-50 bg-emerald-500 hover:bg-emerald-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all group"
     title="Falar no WhatsApp"
   >
@@ -393,9 +425,12 @@
   <div id="cartModal" class="fixed inset-0 z-50 hidden">
     <div onclick="toggleCart()" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
     <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white border-l border-gray-200 flex flex-col shadow-2xl">
-      <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-        <h3 class="font-bold text-gray-900 text-base">Carrinho de Compras</h3>
-        <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-900"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <div class="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-bag-shopping text-[#FF5500]"></i>
+          <h3 class="font-bold text-gray-900 text-base">Carrinho de Compras</h3>
+        </div>
+        <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-900 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="flex-1 overflow-y-auto p-5 space-y-3" id="cartItemsContainer"></div>
       <div class="p-5 border-t border-gray-200 bg-gray-50 space-y-3">
@@ -410,24 +445,76 @@
     </div>
   </div>
 
+  <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO -->
+  <div id="productModal" class="fixed inset-0 z-50 hidden">
+    <div onclick="closeProductModal()" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative max-w-2xl w-11/12 mx-auto my-auto top-1/2 -translate-y-1/2 bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col md:flex-row">
+      <button onclick="closeProductModal()" class="absolute top-3 right-3 z-10 bg-white/80 hover:bg-white text-gray-700 hover:text-gray-900 w-8 h-8 rounded-full flex items-center justify-center shadow transition-all">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+
+      <div class="md:w-1/2 bg-gray-50 relative min-h-[240px] md:min-h-[360px]">
+        <img id="modalProductImg" src="" alt="" class="w-full h-full object-cover">
+        <span id="modalProductBadge" class="absolute top-4 left-4 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
+      </div>
+
+      <div class="md:w-1/2 p-6 flex flex-col justify-between">
+        <div>
+          <span id="modalProductCategory" class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]"></span>
+          <h3 id="modalProductTitle" class="text-xl font-extrabold text-gray-900 mt-1"></h3>
+          <p id="modalProductDesc" class="text-xs text-gray-600 mt-3 leading-relaxed"></p>
+
+          <div class="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-800 text-xs">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+            <span>Produto original com garantia Malala Store</span>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-gray-100">
+          <div class="mb-3">
+            <span class="text-xs text-gray-400 block">Preço especial</span>
+            <div class="flex items-baseline gap-2">
+              <span id="modalProductPrice" class="text-2xl font-black text-gray-900"></span>
+              <span id="modalProductInstallments" class="text-[11px] text-gray-500"></span>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button id="modalAddToCartBtn" class="flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-[#FF5500]/20">
+              <i class="fa-solid fa-cart-plus"></i> Adicionar
+            </button>
+            <button id="modalDirectBuyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20">
+              <i class="fa-brands fa-whatsapp text-sm"></i> Comprar Agora
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPT -->
   <script>
     const products = [
       // 1. TECNOLOGIA
-      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED e rastreamento completo.' },
-      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído e alta autonomia.' },
-      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', desc: 'Resistente à água com graves profundos.' },
-      
+      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
+      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
+      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
+      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
+
       // 2. BELEZA
-      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', desc: 'Tratamento facial para firmeza e iluminação.' },
-      { id: 5, title: 'Modelador & Escova Secadora', category: 'Beleza', price: 210.00, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Modelagem rápida com revestimento cerâmico.' },
-      
+      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
+      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
+      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
+
       // 3. PERFUMES
-      { id: 6, title: 'Club de Nuit Intense Man', category: 'Perfumes', price: 380.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', desc: 'Armaf 105ml - Marcante e alta fixação.' },
-      { id: 7, title: 'Lattafa Asad EDP', category: 'Perfumes', price: 290.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', desc: 'Notas quentes de especiarias e baunilha.' },
-      { id: 8, title: 'Bleu de Chanel Parfum', category: 'Perfumes', price: 980.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=600', desc: 'Amadeirado aromático atemporal.' },
-      { id: 9, title: 'Khamrah Lattafa EDP', category: 'Perfumes', price: 340.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1563178406-4cdc2923acbc?auto=format&fit=crop&q=80&w=600', desc: 'Gourmand oriental doce com toque de canela.' },
-      { id: 10, title: 'Baccarat Rouge 540 Extrait', category: 'Perfumes', price: 2450.00, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Maison Francis Kurkdjian.' }
+      { id: 6, title: 'Club de Nuit Intense Man', category: 'Perfumes', price: 380.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', desc: 'Armaf 105ml - Marcante, sedutor e com fixação de alta performance reconhecida mundialmente.' },
+      { id: 7, title: 'Lattafa Asad EDP', category: 'Perfumes', price: 290.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', desc: 'Notas quentes de especiarias, pimenta preta e baunilha com rastro envolvente e sofisticado.' },
+      { id: 8, title: 'Bleu de Chanel Parfum', category: 'Perfumes', price: 980.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=600', desc: 'Amadeirado aromático atemporal da Chanel. Elegância absoluta em cada borrifada.' },
+      { id: 9, title: 'Khamrah Lattafa EDP', category: 'Perfumes', price: 340.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1563178406-4cdc2923acbc?auto=format&fit=crop&q=80&w=600', desc: 'Gourmand oriental doce envolvente com notas de canela, fava tonka, pralinê e baunilha.' },
+      { id: 10, title: 'Baccarat Rouge 540 Extrait', category: 'Perfumes', price: 2450.00, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Maison Francis Kurkdjian - Fragrância lendária de altíssimo luxo com projeção incomparável.' },
+      { id: 13, title: 'Lattafa Yara Pink EDP 100ml', category: 'Perfumes', price: 280.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', desc: 'Notas orquídea, heliotrópio, frutas tropicais e baunilha. O queridinho das amantes de perfumes doces marcantes.' },
+      { id: 14, title: 'Dior Sauvage Eau de Parfum', category: 'Perfumes', price: 890.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Fragrância potente e misteriosa com notas de bergamota da Calábria e absoluto de baunilha de Papua-Nova Guiné.' },
+      { id: 15, title: 'Carolina Herrera Good Girl EDP', category: 'Perfumes', price: 650.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Icônico frasco de salto fino. Combinação ousada de jasmim luminoso e cacau rico e profundo.' }
     ];
 
     const categories = [
@@ -438,6 +525,7 @@
     ];
 
     let currentCategory = 'Todos';
+    let currentBrandFilter = null;
     let cart = [];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -445,14 +533,28 @@
       renderProducts();
     });
 
+    function showToast(title, message) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastTitle').innerText = title;
+      document.getElementById('toastMessage').innerText = message;
+
+      toast.classList.remove('translate-x-full', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-full', 'opacity-0');
+      }, 3000);
+    }
+
     function renderCategories() {
       const container = document.getElementById('categoriesContainer');
       container.innerHTML = categories.map(cat => `
-        <button 
-          onclick="selectCategory('${cat.name}')" 
-          class="flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${currentCategory === cat.name ? 'bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/25' : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'}"
+        <button
+          onclick="selectCategory('${cat.name}')"
+          class="flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${currentCategory === cat.name && !currentBrandFilter ? 'bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/25' : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'}"
         >
-          <i class="fa-solid ${cat.icon} text-sm ${currentCategory === cat.name ? 'text-white' : 'text-[#FF5500]'}"></i>
+          <i class="fa-solid ${cat.icon} text-sm ${currentCategory === cat.name && !currentBrandFilter ? 'text-white' : 'text-[#FF5500]'}"></i>
           <span>${cat.name}</span>
         </button>
       `).join('');
@@ -460,38 +562,100 @@
 
     function selectCategory(catName) {
       currentCategory = catName;
+      currentBrandFilter = null;
       document.getElementById('categoryTitle').innerText = catName === 'Todos' ? 'Todas as Categorias' : catName;
+      document.getElementById('searchInput').value = '';
+      if (document.getElementById('searchInputMobile')) {
+        document.getElementById('searchInputMobile').value = '';
+      }
       renderCategories();
       renderProducts();
     }
 
     function filterByBrand(brandName) {
+      currentBrandFilter = brandName;
       const filtered = products.filter(p => p.title.toLowerCase().includes(brandName.toLowerCase()) || p.desc.toLowerCase().includes(brandName.toLowerCase()));
-      document.getElementById('categoryTitle').innerText = `Busca por: ${brandName}`;
+      document.getElementById('categoryTitle').innerText = `Busca por Marcas: ${brandName}`;
+      renderCategories();
       renderProducts(filtered);
+    }
+
+    function syncAndFilterMobile() {
+      const val = document.getElementById('searchInputMobile').value;
+      document.getElementById('searchInput').value = val;
+      filterProducts();
+    }
+
+    function filterProducts() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      if (!q.trim()) {
+        renderProducts();
+        return;
+      }
+      currentBrandFilter = null;
+      const filtered = products.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.desc.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.badge.toLowerCase().includes(q)
+      );
+      document.getElementById('categoryTitle').innerText = `Resultados para: "${q}"`;
+      renderProducts(filtered);
+    }
+
+    function sortProducts() {
+      const v = document.getElementById('sortSelect').value;
+      let list;
+      if (currentBrandFilter) {
+        list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+      } else {
+        list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
+      }
+
+      if (v === 'price-low') list.sort((a,b) => a.price - b.price);
+      if (v === 'price-high') list.sort((a,b) => b.price - a.price);
+      renderProducts(list);
     }
 
     function renderProducts(customList = null) {
       const grid = document.getElementById('productsGrid');
-      let list = customList || (currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory));
+      let list;
+
+      if (customList) {
+        list = customList;
+      } else if (currentBrandFilter) {
+        list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+      } else {
+        list = currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory);
+      }
 
       document.getElementById('productsCountText').innerText = `Exibindo ${list.length} produto(s)`;
 
       if (list.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-16 text-center text-gray-400">Nenhum produto encontrado.</div>`;
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+            <i class="fa-solid fa-magnifying-glass text-3xl text-gray-300 mb-2"></i>
+            <p class="text-sm font-bold text-gray-700">Nenhum produto encontrado</p>
+            <p class="text-xs text-gray-400 mt-1">Tente pesquisar outro termo ou selecione uma categoria acima.</p>
+            <button onclick="selectCategory('Todos')" class="mt-4 px-4 py-2 bg-[#FF5500] text-white text-xs font-bold rounded-xl shadow-md">Ver todos os produtos</button>
+          </div>
+        `;
         return;
       }
 
       grid.innerHTML = list.map(p => `
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
           <div>
-            <div class="relative h-48 bg-gray-50 overflow-hidden">
+            <div class="relative h-48 bg-gray-50 overflow-hidden cursor-pointer" onclick="openProductModal(${p.id})">
               <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
               <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow">
                 ${p.badge}
               </span>
+              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fa-solid fa-eye text-[#FF5500]"></i> Espiar
+              </button>
             </div>
-            <div class="p-4">
+            <div class="p-4 cursor-pointer" onclick="openProductModal(${p.id})">
               <span class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]">${p.category}</span>
               <h3 class="font-bold text-gray-900 text-sm mt-1 line-clamp-1 group-hover:text-[#FF5500] transition-colors">${p.title}</h3>
               <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.desc}</p>
@@ -502,50 +666,102 @@
               <span class="text-[10px] text-gray-400 block uppercase">Preço</span>
               <span class="text-base font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
             </div>
-            <button onclick="addToCart(${p.id})" class="bg-gray-100 hover:bg-[#FF5500] text-gray-700 hover:text-white p-2.5 rounded-xl transition-all shadow-sm">
-              <i class="fa-solid fa-cart-plus text-sm"></i>
-            </button>
+            <div class="flex items-center gap-1.5">
+              <button onclick="openProductModal(${p.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl transition-all shadow-sm" title="Ver Detalhes">
+                <i class="fa-solid fa-eye text-xs"></i>
+              </button>
+              <button onclick="addToCart(${p.id})" class="bg-[#FF5500] hover:bg-[#E64A00] text-white p-2.5 rounded-xl transition-all shadow-md shadow-[#FF5500]/20" title="Adicionar ao Carrinho">
+                <i class="fa-solid fa-cart-plus text-xs"></i>
+              </button>
+            </div>
           </div>
         </div>
       `).join('');
     }
 
-    function filterProducts() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      const filtered = products.filter(p => p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
-      renderProducts(filtered);
+    function openProductModal(id) {
+      const p = products.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('modalProductImg').src = p.image;
+      document.getElementById('modalProductBadge').innerText = p.badge;
+      document.getElementById('modalProductCategory').innerText = p.category;
+      document.getElementById('modalProductTitle').innerText = p.title;
+      document.getElementById('modalProductDesc').innerText = p.desc;
+      document.getElementById('modalProductPrice').innerText = `R$ ${p.price.toFixed(2).replace('.', ',')}`;
+
+      const installment = (p.price / 10).toFixed(2).replace('.', ',');
+      document.getElementById('modalProductInstallments').innerText = `ou 10x de R$ ${installment} sem juros`;
+
+      document.getElementById('modalAddToCartBtn').onclick = () => {
+        addToCart(p.id);
+        closeProductModal();
+      };
+
+      document.getElementById('modalDirectBuyBtn').onclick = () => {
+        const msg = `*INTERESSE EM PRODUTO - MALALA STORE*\n\nOlá! Tenho interesse no produto:\n*${p.title}*\n*Preço:* R$ ${p.price.toFixed(2).replace('.', ',')}\n\nPode me dar mais informações sobre pronta entrega?`;
+        window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
+      };
+
+      document.getElementById('productModal').classList.remove('hidden');
     }
 
-    function sortProducts() {
-      const v = document.getElementById('sortSelect').value;
-      let list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
-      if (v === 'price-low') list.sort((a,b) => a.price - b.price);
-      if (v === 'price-high') list.sort((a,b) => b.price - a.price);
-      renderProducts(list);
+    function closeProductModal() {
+      document.getElementById('productModal').classList.add('hidden');
     }
 
     function addToCart(id) {
       const p = products.find(x => x.id === id);
       const ex = cart.find(x => x.id === id);
-      if (ex) ex.qty++; else cart.push({...p, qty: 1});
+      if (ex) {
+        ex.qty++;
+      } else {
+        cart.push({...p, qty: 1});
+      }
       updateCart();
-      toggleCart(true);
+      showToast('Produto Adicionado!', `${p.title} foi adicionado ao seu carrinho.`);
+    }
+
+    function changeQty(id, delta) {
+      const item = cart.find(x => x.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) {
+        cart = cart.filter(x => x.id !== id);
+      }
+      updateCart();
     }
 
     function updateCart() {
       document.getElementById('cartCount').innerText = cart.reduce((a,b) => a + b.qty, 0);
       const container = document.getElementById('cartItemsContainer');
       if (cart.length === 0) {
-        container.innerHTML = `<p class="text-center text-gray-400 py-12 text-xs">Carrinho vazio.</p>`;
+        container.innerHTML = `
+          <div class="text-center text-gray-400 py-16">
+            <i class="fa-solid fa-bag-shopping text-4xl mb-3 text-gray-300"></i>
+            <p class="text-xs font-bold text-gray-600">Seu carrinho está vazio</p>
+            <p class="text-[10px] text-gray-400 mt-1">Explore nossas ofertas e adicione seus produtos favoritos!</p>
+          </div>
+        `;
       } else {
         container.innerHTML = cart.map(i => `
           <div class="bg-gray-50 p-3 rounded-xl flex items-center gap-3 border border-gray-200">
-            <img src="${i.image}" class="w-12 h-12 object-cover rounded-lg bg-white">
+            <img src="${i.image}" class="w-14 h-14 object-cover rounded-lg bg-white border border-gray-200">
             <div class="flex-1">
               <h4 class="text-xs font-bold text-gray-900 line-clamp-1">${i.title}</h4>
-              <p class="text-xs text-[#FF5500] font-bold mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')} (${i.qty}x)</p>
+              <p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}</p>
+
+              <div class="flex items-center gap-2 mt-2">
+                <div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs">
+                  <button onclick="changeQty(${i.id}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button>
+                  <span class="px-2 py-0.5 font-bold text-gray-900">${i.qty}</span>
+                  <button onclick="changeQty(${i.id}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button>
+                </div>
+              </div>
             </div>
-            <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+            <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors" title="Remover produto">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
           </div>
         `).join('');
       }
@@ -559,11 +775,11 @@
     }
 
     function checkoutWhatsApp() {
-      if (cart.length === 0) return alert('Carrinho vazio!');
+      if (cart.length === 0) return alert('Seu carrinho está vazio!');
       let msg = '*NOVO PEDIDO - MALALA STORE*\n\n';
       cart.forEach(i => msg += `• ${i.qty}x ${i.title} - R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}\n`);
       const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
-      msg += `\n*Total:* R$ ${total.toFixed(2).replace('.', ',')}\n\nPodemos fechar?`;
+      msg += `\n*Total do Pedido:* R$ ${total.toFixed(2).replace('.', ',')}\n\nPodemos fechar o pedido?`;
       window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
     }
   </script>
