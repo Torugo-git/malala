@@ -83,7 +83,8 @@ app.post('/api/payments/pix', authenticateUser, async (req, res) => {
         payer: {
           name: payer.first_name + ' ' + (payer.last_name || ''),
           email: payer.email,
-          cpf: payer.identification.number
+          cpf: payer.identification ? payer.identification.number : '',
+          address: payer.address || shippingAddress || null
         },
         items,
         totalAmount,
@@ -166,7 +167,8 @@ app.post('/api/payments/card', authenticateUser, async (req, res) => {
         payer: {
           name: payer.first_name + ' ' + (payer.last_name || ''),
           email: payer.email,
-          cpf: payer.identification ? payer.identification.number : ''
+          cpf: payer.identification ? payer.identification.number : '',
+          address: payer.address || req.body.shippingAddress || null
         },
         items,
         totalAmount,

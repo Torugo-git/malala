@@ -511,6 +511,35 @@
             </div>
           </div>
 
+          <!-- ENDEREÇO DE ENTREGA -->
+          <div class="space-y-3 pt-2 border-t border-gray-100">
+            <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-location-dot text-[#FF5500]"></i> Endereço de Entrega</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">CEP</label>
+                <input type="text" id="payCep" placeholder="00000-000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              </div>
+              <div class="col-span-2">
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Rua / Logradouro</label>
+                <input type="text" id="payStreet" placeholder="Av. Principal, Rua..." class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Número</label>
+                <input type="text" id="payNumber" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Bairro</label>
+                <input type="text" id="payNeighborhood" placeholder="Centro" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Cidade / UF</label>
+                <input type="text" id="payCity" placeholder="Rio de Janeiro / RJ" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-xs font-bold text-gray-700 mb-2">Forma de Pagamento</label>
             <div class="grid grid-cols-2 gap-3">
@@ -904,11 +933,26 @@
       const email = document.getElementById('payEmail').value;
       const cpf = document.getElementById('payCpf').value;
 
+      const street = document.getElementById('payStreet').value;
+      const number = document.getElementById('payNumber').value;
+      const neighborhood = document.getElementById('payNeighborhood').value;
+      const city = document.getElementById('payCity').value;
+      const cep = document.getElementById('payCep').value;
+
+      const shippingAddress = {
+        cep: cep,
+        street: street,
+        number: number,
+        neighborhood: neighborhood,
+        city: city
+      };
+
       const payerData = {
         first_name: firstName,
         last_name: lastName,
         email: email,
-        identification: { type: 'CPF', number: cpf.replace(/\D/g, '') }
+        identification: { type: 'CPF', number: cpf.replace(/\D/g, '') },
+        address: shippingAddress
       };
 
       const formattedItems = cart.map(i => ({
@@ -958,6 +1002,8 @@
           document.getElementById('pixCopyPasteInput').value = dummyCopyPaste;
           document.getElementById('checkoutFormStep').classList.add('hidden');
           document.getElementById('pixResultStep').classList.remove('hidden');
+
+          saveLocalDemoOrder(payerData, formattedItems, 'PIX');
           cart = [];
           updateCart();
           showToast('PIX de Teste Gerado!', 'Demonstração de checkout PIX ativa.');
@@ -990,6 +1036,7 @@
           }
 
           // DEMO/TEST CARD FALLBACK
+          saveLocalDemoOrder(payerData, formattedItems, 'Cartão de Crédito', 'Pago');
           showToast('Pagamento Aprovado (Demonstração)!', 'Seu pedido foi aprovado em modo de teste.');
           cart = [];
           updateCart();
@@ -1000,6 +1047,28 @@
       } finally {
         btn.disabled = false;
         togglePayMethodUI(selectedPayMethod);
+      }
+    }
+
+    function saveLocalDemoOrder(payer, items, method, status = 'Pendente') {
+      const existing = JSON.parse(localStorage.getItem('malala_orders') || '[]');
+      const newOrder = {
+        id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+        payer: payer,
+        items: items,
+        total: items.reduce((a, b) => a + (b.price * b.quantity), 0),
+        paymentMethod: method,
+        status: status,
+        createdAt: new Date().toISOString()
+      };
+      existing.unshift(newOrder);
+      localStorage.setItem('malala_orders', JSON.stringify(existing));
+
+      if (db) {
+        db.collection('orders').doc(newOrder.id).set({
+          ...newOrder,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.warn('Firestore save order error:', err));
       }
     }
 
