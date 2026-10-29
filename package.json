@@ -1,0 +1,29 @@
+{
+  "name": "malala-store-backend",
+  "version": "1.0.0",
+  "description": "Backend Node.js para Malala Store com Firebase Admin SDK e Mercado Pago Payments API",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "malala-store",
+    "mercado-pago",
+    "firebase",
+    "pix",
+    "ecommerce"
+  ],
+  "author": "Malala Store",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
+    "mercadopago": "^2.0.11"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

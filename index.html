@@ -7,7 +7,11 @@
 
   <!-- Firebase SDK (Compat version for vanilla HTML) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Mercado Pago SDK V2 -->
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -181,8 +185,14 @@
           </button>
         </div>
 
-        <!-- AÇÕES / CARRINHO -->
+        <!-- AÇÕES / CARRINHO / AUTH -->
         <div class="flex items-center gap-3">
+          <!-- BOTÃO ENTRAR / CONTA -->
+          <button id="authBtn" onclick="openAuthModal()" class="flex items-center gap-2 text-xs font-bold bg-gray-100 border border-gray-200 px-3.5 py-2.5 rounded-xl hover:border-[#FF5500] transition-all">
+            <i class="fa-solid fa-user text-[#FF5500]"></i>
+            <span id="authBtnLabel" class="hidden sm:inline">Entrar</span>
+          </button>
+
           <a href="https://wa.me/5521992663800" target="_blank" class="hidden lg:flex items-center gap-2 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
             <i class="fa-brands fa-whatsapp text-sm"></i>
             <span>Suporte Direct</span>
@@ -425,6 +435,166 @@
     <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white"></span>
   </a>
 
+  <!-- MODAL DE AUTENTICAÇÃO (LOGIN / REGISTRO) -->
+  <div id="authModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeAuthModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 z-10 text-center">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <img src="logo-circle.png" class="w-14 h-14 rounded-full mx-auto mb-3 border-2 border-[#FF5500] shadow-md">
+      <h3 id="authModalTitle" class="text-xl font-extrabold text-gray-900">Entrar na Sua Conta</h3>
+      <p id="authModalSub" class="text-xs text-gray-500 mt-1 mb-6">Acompanhe seus pedidos e receba ofertas exclusivas.</p>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4 text-left">
+        <div id="nameFieldContainer" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 mb-1">Nome Completo</label>
+          <input type="text" id="authName" placeholder="Seu Nome" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">E-mail</label>
+          <input type="email" id="authEmail" placeholder="seuemail@exemplo.com" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Senha</label>
+          <input type="password" id="authPassword" placeholder="******" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center justify-center gap-2">
+          Entrar
+        </button>
+      </form>
+
+      <div class="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-500">
+        <span id="authToggleText">Ainda não tem conta?</span>
+        <button onclick="toggleAuthMode()" id="authToggleBtn" class="font-bold text-[#FF5500] hover:underline ml-1">Criar Conta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CHECKOUT E PAGAMENTO (MERCADO PAGO) -->
+  <div id="checkoutModal" class="fixed inset-0 z-50 hidden overflow-y-auto p-4 flex items-center justify-center">
+    <div onclick="closeCheckoutModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 z-10 my-auto max-h-[90vh] overflow-y-auto">
+      <button onclick="closeCheckoutModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <h3 class="text-xl font-extrabold text-gray-900 mb-1">Finalizar Pagamento</h3>
+      <p class="text-xs text-gray-500 mb-6">Escolha a forma de pagamento segura do Mercado Pago.</p>
+
+      <!-- PASSO 1: DADOS DO PAGADOR E MÉTODO -->
+      <div id="checkoutFormStep">
+        <form onsubmit="handleCheckoutSubmit(event)" class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nome</label>
+              <input type="text" id="payFirstName" placeholder="Nome" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Sobrenome</label>
+              <input type="text" id="payLastName" placeholder="Sobrenome" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">E-mail</label>
+              <input type="email" id="payEmail" placeholder="seuemail@exemplo.com" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">CPF</label>
+              <input type="text" id="payCpf" placeholder="000.000.000-00" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-2">Forma de Pagamento</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="border-2 border-[#FF5500] bg-[#FF5500]/5 p-3 rounded-2xl flex items-center gap-3 cursor-pointer">
+                <input type="radio" name="payMethod" value="pix" checked onchange="togglePayMethodUI('pix')" class="text-[#FF5500]">
+                <div>
+                  <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-qrcode text-emerald-600"></i> PIX</span>
+                  <span class="text-[10px] text-gray-500">Aprovação Imediata</span>
+                </div>
+              </label>
+
+              <label class="border-2 border-gray-200 p-3 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-gray-300">
+                <input type="radio" name="payMethod" value="card" onchange="togglePayMethodUI('card')" class="text-[#FF5500]">
+                <div>
+                  <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-credit-card text-blue-600"></i> Cartão</span>
+                  <span class="text-[10px] text-gray-500">Até 10x sem juros</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- DADOS DO CARTÃO (SELECIONADO 'CARD') -->
+          <div id="cardFieldsContainer" class="hidden space-y-3 pt-2 border-t border-gray-100">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Número do Cartão</label>
+              <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Validade (MM/AA)</label>
+                <input type="text" id="cardExpiry" placeholder="12/28" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">CVV</label>
+                <input type="text" id="cardCvv" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nome Impresso no Cartão</label>
+              <input type="text" id="cardHolderName" placeholder="NOME COMO NO CARTÃO" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-gray-400 block">Total a Pagar</span>
+              <span id="checkoutTotalDisplay" class="text-xl font-black text-[#FF5500]">R$ 0,00</span>
+            </div>
+            <button type="submit" id="paySubmitBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2">
+              <i class="fa-solid fa-[#FF5500]"></i> Gerar Pagamento PIX
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PASSO 2: RESULTADO DO PIX (QR CODE & COPY/PASTE) -->
+      <div id="pixResultStep" class="hidden text-center space-y-4">
+        <div class="p-3 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-100 text-xs font-bold flex items-center justify-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left"></i> Aguardando Pagamento no PIX
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 inline-block">
+          <img id="pixQrCodeImg" src="" alt="QR Code PIX" class="w-48 h-48 mx-auto rounded-lg shadow-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Código PIX Copia e Cola</label>
+          <div class="flex gap-2">
+            <input type="text" id="pixCopyPasteInput" readonly class="w-full bg-gray-100 border border-gray-200 text-[10px] font-mono py-2 px-3 rounded-xl select-all">
+            <button onclick="copyPixCode()" class="bg-[#FF5500] hover:bg-[#E64A00] text-white text-xs font-bold px-4 py-2 rounded-xl shrink-0 flex items-center gap-1.5">
+              <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100">
+          <p class="text-[11px] text-gray-400 mb-3">Assim que o pagamento for confirmado pelo banco, seu pedido será processado automaticamente!</p>
+          <button onclick="closeCheckoutModal()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl text-xs">Concluir</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MODAL DO CARRINHO -->
   <div id="cartModal" class="fixed inset-0 z-50 hidden">
     <div onclick="toggleCart()" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
@@ -442,9 +612,14 @@
           <span>Total</span>
           <span id="cartTotal" class="text-[#FF5500]">R$ 0,00</span>
         </div>
-        <button onclick="checkoutWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20">
-          <i class="fa-brands fa-whatsapp text-lg"></i> Finalizar Pedido no WhatsApp
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="checkoutWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs shadow-md shadow-emerald-600/20">
+            <i class="fa-brands fa-whatsapp text-base"></i> WhatsApp
+          </button>
+          <button onclick="openMercadoPagoCheckout()" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs shadow-md shadow-[#FF5500]/20">
+            <i class="fa-solid fa-credit-card text-base"></i> Pagar Online
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -592,8 +767,201 @@
     let currentBrandFilter = null;
     let cart = [];
 
+    let auth = null;
+    let currentUser = null;
+    let isRegisterMode = false;
+    let selectedPayMethod = 'pix';
+
+    function initFirebaseAuth() {
+      if (firebase.apps.length) {
+        auth = firebase.auth();
+        auth.onAuthStateChanged((user) => {
+          currentUser = user;
+          const label = document.getElementById('authBtnLabel');
+          if (user) {
+            label.innerText = user.displayName || user.email.split('@')[0];
+            showToast('Sessão Ativa', `Bem-vindo(a), ${user.displayName || user.email}!`);
+          } else {
+            label.innerText = 'Entrar';
+          }
+        });
+      }
+    }
+
+    function openAuthModal() {
+      if (currentUser) {
+        if (confirm(`Conectado como ${currentUser.email}. Deseja sair da conta?`)) {
+          auth.signOut().then(() => showToast('Desconectado', 'Você saiu da sua conta.'));
+        }
+        return;
+      }
+      document.getElementById('authModal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('authModalTitle').innerText = isRegisterMode ? 'Criar Sua Conta' : 'Entrar na Sua Conta';
+      document.getElementById('authModalSub').innerText = isRegisterMode ? 'Cadastre-se para acompanhar pedidos' : 'Acompanhe seus pedidos e receba ofertas';
+      document.getElementById('nameFieldContainer').classList.toggle('hidden', !isRegisterMode);
+      document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Cadastrar Conta' : 'Entrar';
+      document.getElementById('authToggleText').innerText = isRegisterMode ? 'Já tem conta?' : 'Ainda não tem conta?';
+      document.getElementById('authToggleBtn').innerText = isRegisterMode ? 'Fazer Login' : 'Criar Conta';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value;
+      const pass = document.getElementById('authPassword').value;
+      const name = document.getElementById('authName').value;
+
+      try {
+        if (isRegisterMode) {
+          const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+          if (name) {
+            await userCred.user.updateProfile({ displayName: name });
+          }
+          showToast('Conta Criada!', 'Cadastro realizado com sucesso.');
+        } else {
+          await auth.signInWithEmailAndPassword(email, pass);
+          showToast('Bem-vindo!', 'Login efetuado com sucesso.');
+        }
+        closeAuthModal();
+      } catch (err) {
+        alert('Erro de autenticação: ' + err.message);
+      }
+    }
+
+    function openMercadoPagoCheckout() {
+      if (cart.length === 0) return alert('Seu carrinho está vazio!');
+      toggleCart(false);
+
+      if (currentUser) {
+        document.getElementById('payEmail').value = currentUser.email || '';
+        if (currentUser.displayName) {
+          const parts = currentUser.displayName.split(' ');
+          document.getElementById('payFirstName').value = parts[0] || '';
+          document.getElementById('payLastName').value = parts.slice(1).join(' ') || '';
+        }
+      }
+
+      const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
+      document.getElementById('checkoutTotalDisplay').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+      document.getElementById('checkoutFormStep').classList.remove('hidden');
+      document.getElementById('pixResultStep').classList.add('hidden');
+      document.getElementById('checkoutModal').classList.remove('hidden');
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    function togglePayMethodUI(method) {
+      selectedPayMethod = method;
+      document.getElementById('cardFieldsContainer').classList.toggle('hidden', method !== 'card');
+      const submitBtn = document.getElementById('paySubmitBtn');
+      if (method === 'pix') {
+        submitBtn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
+      } else {
+        submitBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+      }
+    }
+
+    async function handleCheckoutSubmit(e) {
+      e.preventDefault();
+      const firstName = document.getElementById('payFirstName').value;
+      const lastName = document.getElementById('payLastName').value;
+      const email = document.getElementById('payEmail').value;
+      const cpf = document.getElementById('payCpf').value;
+
+      const payerData = {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        identification: { type: 'CPF', number: cpf.replace(/\D/g, '') }
+      };
+
+      const formattedItems = cart.map(i => ({
+        id: String(i.id),
+        title: i.title,
+        quantity: i.qty,
+        price: i.price
+      }));
+
+      const btn = document.getElementById('paySubmitBtn');
+      btn.disabled = true;
+      btn.innerText = 'Processando...';
+
+      try {
+        const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:3000'
+          : 'https://api-malalastore.com'; // Altere para a URL de produção do seu backend Node.js
+
+        if (selectedPayMethod === 'pix') {
+          const res = await fetch(`${backendUrl}/api/payments/pix`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: formattedItems, payer: payerData })
+          });
+          const data = await res.json();
+
+          if (data.success && data.qrCodeBase64) {
+            document.getElementById('pixQrCodeImg').src = `data:image/jpeg;base64,${data.qrCodeBase64}`;
+            document.getElementById('pixCopyPasteInput').value = data.qrCodeCopyPaste;
+            document.getElementById('checkoutFormStep').classList.add('hidden');
+            document.getElementById('pixResultStep').classList.remove('hidden');
+            cart = [];
+            updateCart();
+            showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
+          } else {
+            alert('Aviso: Certifique-se de estar rodando o servidor backend em http://localhost:3000 com as chaves válidas do Mercado Pago.');
+          }
+        } else {
+          // Processamento Simulado/Real de Cartão via Backend
+          const res = await fetch(`${backendUrl}/api/payments/card`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: 'TEST_CARD_TOKEN_' + Date.now(),
+              payment_method_id: 'visa',
+              installments: 1,
+              payer: payerData,
+              items: formattedItems
+            })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
+            cart = [];
+            updateCart();
+            closeCheckoutModal();
+          } else {
+            alert('Aviso: Não foi possível processar o cartão. Verifique se o servidor backend está rodando.');
+          }
+        }
+      } catch (err) {
+        console.warn('Backend indisponível:', err);
+        alert('Instrução de Integração: Para testar a geração real de PIX e Cartão com Mercado Pago, inicie o servidor Node.js com "npm start" dentro do projeto.');
+      } finally {
+        btn.disabled = false;
+        togglePayMethodUI(selectedPayMethod);
+      }
+    }
+
+    function copyPixCode() {
+      const input = document.getElementById('pixCopyPasteInput');
+      input.select();
+      document.execCommand('copy');
+      showToast('Copiado!', 'Código PIX Copia e Cola copiado para a área de transferência.');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       initFirebaseClient();
+      initFirebaseAuth();
       renderCategories();
       renderProducts();
       initFirebaseSync();
