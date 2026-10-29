@@ -450,44 +450,44 @@
   </div>
 
   <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO -->
-  <div id="productModal" class="fixed inset-0 z-50 hidden">
-    <div onclick="closeProductModal()" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="relative max-w-2xl w-11/12 mx-auto my-auto top-1/2 -translate-y-1/2 bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col md:flex-row">
-      <button onclick="closeProductModal()" class="absolute top-3 right-3 z-10 bg-white/80 hover:bg-white text-gray-700 hover:text-gray-900 w-8 h-8 rounded-full flex items-center justify-center shadow transition-all">
+  <div id="productModal" class="fixed inset-0 z-50 hidden overflow-y-auto p-3 sm:p-4 md:p-6 flex items-center justify-center">
+    <div onclick="closeProductModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden my-auto max-h-[90vh] sm:max-h-[85vh] z-10">
+      <button onclick="closeProductModal()" class="absolute top-3 right-3 z-20 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-all border border-gray-100">
         <i class="fa-solid fa-xmark text-base"></i>
       </button>
 
-      <div class="md:w-1/2 bg-gray-50 relative min-h-[240px] md:min-h-[360px]">
+      <div class="md:w-1/2 bg-gray-50 relative h-52 sm:h-64 md:h-auto shrink-0">
         <img id="modalProductImg" src="" alt="" class="w-full h-full object-cover">
         <span id="modalProductBadge" class="absolute top-4 left-4 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
       </div>
 
-      <div class="md:w-1/2 p-6 flex flex-col justify-between">
+      <div class="md:w-1/2 p-5 sm:p-6 flex flex-col justify-between overflow-y-auto max-h-[calc(90vh-13rem)] md:max-h-[85vh]">
         <div>
           <span id="modalProductCategory" class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]"></span>
-          <h3 id="modalProductTitle" class="text-xl font-extrabold text-gray-900 mt-1"></h3>
-          <p id="modalProductDesc" class="text-xs text-gray-600 mt-3 leading-relaxed"></p>
+          <h3 id="modalProductTitle" class="text-lg sm:text-xl font-extrabold text-gray-900 mt-1"></h3>
+          <p id="modalProductDesc" class="text-xs text-gray-600 mt-3 leading-relaxed whitespace-pre-line"></p>
 
-          <div class="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-800 text-xs">
-            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+          <div class="mt-4 p-2.5 sm:p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-800 text-xs">
+            <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
             <span>Produto original com garantia Malala Store</span>
           </div>
         </div>
 
-        <div class="mt-6 pt-4 border-t border-gray-100">
+        <div class="mt-5 pt-3 sm:pt-4 border-t border-gray-100 shrink-0">
           <div class="mb-3">
-            <span class="text-xs text-gray-400 block">Preço especial</span>
-            <div class="flex items-baseline gap-2">
-              <span id="modalProductPrice" class="text-2xl font-black text-gray-900"></span>
-              <span id="modalProductInstallments" class="text-[11px] text-gray-500"></span>
+            <span class="text-[11px] text-gray-400 block">Preço especial</span>
+            <div class="flex items-baseline gap-2 flex-wrap">
+              <span id="modalProductPrice" class="text-xl sm:text-2xl font-black text-gray-900"></span>
+              <span id="modalProductInstallments" class="text-[10px] sm:text-[11px] text-gray-500"></span>
             </div>
           </div>
 
           <div class="flex gap-2">
-            <button id="modalAddToCartBtn" class="flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-[#FF5500]/20">
+            <button id="modalAddToCartBtn" class="flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#FF5500]/20">
               <i class="fa-solid fa-cart-plus"></i> Adicionar
             </button>
-            <button id="modalDirectBuyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20">
+            <button id="modalDirectBuyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20">
               <i class="fa-brands fa-whatsapp text-sm"></i> Comprar Agora
             </button>
           </div>
@@ -769,10 +769,12 @@
         window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
       };
 
+      document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
     }
 
     function closeProductModal() {
+      document.body.classList.remove('overflow-hidden');
       document.getElementById('productModal').classList.add('hidden');
     }
 
