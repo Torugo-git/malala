@@ -966,9 +966,7 @@
       btn.innerText = 'Processando...';
 
       try {
-        const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? 'http://localhost:3000'
-          : 'https://api-malalastore.com';
+       const backendUrl = 'https://malala-backend.onrender.com';
 
         if (selectedPayMethod === 'pix') {
           try {
