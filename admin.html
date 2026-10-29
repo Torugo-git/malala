@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin - MALALA STORE</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#FF5500',
+              deepOrange: '#E64A00'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #FF5500; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- LOGIN OVERLAY -->
+  <div id="loginModal" class="fixed inset-0 z-50 bg-gray-900/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full rounded-3xl p-8 shadow-2xl border border-gray-100 text-center relative">
+      <img src="logo-circle.png" alt="Malala Store" class="w-16 h-16 rounded-full mx-auto mb-4 border-2 border-[#FF5500] shadow-md">
+      <h2 class="text-2xl font-black text-gray-900">Painel do Lojista</h2>
+      <p class="text-xs text-gray-500 mt-1 mb-6">Digite a senha de acesso para gerenciar o catálogo da Malala Store.</p>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <input
+            type="password"
+            id="adminPassword"
+            placeholder="Senha de Acesso (Padrão: malala123)"
+            class="w-full bg-gray-50 border border-gray-200 text-sm text-center font-bold py-3 px-4 rounded-xl focus:outline-none focus:border-[#FF5500] transition-all"
+            required
+          >
+          <p id="loginError" class="text-xs text-red-500 font-bold mt-2 hidden">Senha incorreta! Tente novamente.</p>
+        </div>
+        <button type="submit" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-[#FF5500]/25 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-lock-open"></i> Entrar no Gerenciador
+        </button>
+      </form>
+      <div class="mt-6 pt-4 border-t border-gray-100">
+        <a href="index.html" class="text-xs text-gray-400 hover:text-gray-700 transition-colors">← Voltar para a Loja</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER ADMIN -->
+  <header class="bg-gray-900 text-white border-b border-gray-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="logo-circle.png" alt="Malala Store" class="w-10 h-10 rounded-full border border-[#FF5500]">
+        <div>
+          <span class="text-base font-black tracking-wider text-white block leading-none font-serif">MALALA STORE</span>
+          <span class="text-[10px] text-[#FF5500] font-bold tracking-widest uppercase">Painel de Gestão de Catálogo</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="index.html" target="_blank" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-700 transition-all flex items-center gap-2">
+          <i class="fa-solid fa-store text-[#FF5500]"></i>
+          <span class="hidden sm:inline">Ver Site ao Vivo</span>
+        </a>
+        <button onclick="logout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl border border-red-500/20 transition-all">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- ESTATÍSTICAS E AÇÕES RÁPIDAS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-xs text-gray-400 font-medium block">Total de Produtos</span>
+          <span class="text-2xl font-black text-gray-900" id="statTotal">0</span>
+        </div>
+        <div class="p-3 bg-[#FF5500]/10 text-[#FF5500] rounded-xl text-xl">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-xs text-gray-400 font-medium block">Categorias Ativas</span>
+          <span class="text-2xl font-black text-gray-900">3</span>
+        </div>
+        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl text-xl">
+          <i class="fa-solid fa-tags"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-xs text-gray-400 font-medium block">Contato Comercial</span>
+          <span class="text-sm font-bold text-gray-900 block mt-1">+55 21 99266-3800</span>
+        </div>
+        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl text-xl">
+          <i class="fa-brands fa-whatsapp"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRA DE CONTROLE -->
+    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <input
+          type="text"
+          id="adminSearch"
+          onkeyup="renderAdminTable()"
+          placeholder="Buscar no painel..."
+          class="bg-gray-50 border border-gray-200 text-xs py-2.5 px-4 rounded-xl w-full sm:w-72 focus:outline-none focus:border-[#FF5500]"
+        >
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <button onclick="resetDefaultCatalog()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all border border-gray-200 flex items-center gap-2">
+          <i class="fa-solid fa-rotate-left"></i> Restaurar Padrão
+        </button>
+        <button onclick="openAddProductModal()" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Novo Produto
+        </button>
+      </div>
+    </div>
+
+    <!-- TABELA DE PRODUTOS -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+              <th class="p-4">Produto</th>
+              <th class="p-4">Categoria</th>
+              <th class="p-4">Selo / Tag</th>
+              <th class="p-4">Preço</th>
+              <th class="p-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="adminProductsTable" class="divide-y divide-gray-100">
+            <!-- Inserido via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL DE ADICIONAR / EDITAR PRODUTO -->
+  <div id="productFormModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-gray-100 relative">
+      <button onclick="closeProductFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <h3 class="text-xl font-extrabold text-gray-900 mb-1" id="formModalTitle">Novo Produto</h3>
+      <p class="text-xs text-gray-500 mb-5">Preencha as informações para atualizar o catálogo.</p>
+
+      <form onsubmit="saveProduct(event)" class="space-y-4">
+        <input type="hidden" id="editProductId">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Nome do Produto</label>
+          <input type="text" id="formTitle" placeholder="Ex: Lattafa Asad EDP 100ml" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Categoria</label>
+            <select id="formCategory" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+              <option value="Perfumes">Perfumes</option>
+              <option value="Tecnologia">Tecnologia</option>
+              <option value="Beleza">Beleza</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Preço (R$)</label>
+            <input type="number" step="0.01" id="formPrice" placeholder="Ex: 290.00" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Selo / Tag Destaque</label>
+            <input type="text" id="formBadge" placeholder="Ex: Perfume Árabe, Lançamento" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">URL da Imagem</label>
+            <input type="url" id="formImage" placeholder="https://..." class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Descrição Comercial</label>
+          <textarea id="formDesc" rows="3" placeholder="Resumo e destaques do produto..." class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+          <button type="button" onclick="closeProductFormModal()" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-[#FF5500] hover:bg-[#E64A00] text-white rounded-xl text-xs font-bold shadow-md shadow-[#FF5500]/20">Salvar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER ADMIN -->
+  <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500">
+    &copy; 2026 MALALA STORE - Sistema Administrativo de Catálogo.
+  </footer>
+
+  <script>
+    const defaultProducts = [
+      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
+      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
+      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
+      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
+      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
+      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
+      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
+      { id: 6, title: 'Club de Nuit Intense Man', category: 'Perfumes', price: 380.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', desc: 'Armaf 105ml - Marcante, sedutor e com fixação de alta performance reconhecida mundialmente.' },
+      { id: 7, title: 'Lattafa Asad EDP', category: 'Perfumes', price: 290.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', desc: 'Notas quentes de especiarias, pimenta preta e baunilha com rastro envolvente e sofisticado.' },
+      { id: 8, title: 'Bleu de Chanel Parfum', category: 'Perfumes', price: 980.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=600', desc: 'Amadeirado aromático atemporal da Chanel. Elegância absoluta em cada borrifada.' },
+      { id: 9, title: 'Khamrah Lattafa EDP', category: 'Perfumes', price: 340.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1563178406-4cdc2923acbc?auto=format&fit=crop&q=80&w=600', desc: 'Gourmand oriental doce envolvente com notas de canela, fava tonka, pralinê e baunilha.' },
+      { id: 10, title: 'Baccarat Rouge 540 Extrait', category: 'Perfumes', price: 2450.00, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Maison Francis Kurkdjian - Fragrância lendária de altíssimo luxo com projeção incomparável.' },
+      { id: 13, title: 'Lattafa Yara Pink EDP 100ml', category: 'Perfumes', price: 280.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', desc: 'Notas orquídea, heliotrópio, frutas tropicais e baunilha. O queridinho das amantes de perfumes doces marcantes.' },
+      { id: 14, title: 'Dior Sauvage Eau de Parfum', category: 'Perfumes', price: 890.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Fragrância potente e misteriosa com notas de bergamota da Calábria e absoluto de baunilha de Papua-Nova Guiné.' },
+      { id: 15, title: 'Carolina Herrera Good Girl EDP', category: 'Perfumes', price: 650.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Icônico frasco de salto fino. Combinação ousada de jasmim luminoso e cacau rico e profundo.' }
+    ];
+
+    let adminProducts = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (sessionStorage.getItem('malala_logged') === 'true') {
+        document.getElementById('loginModal').classList.add('hidden');
+      }
+      loadAdminProducts();
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('adminPassword').value;
+      if (pwd === 'malala123' || pwd === 'admin') {
+        sessionStorage.setItem('malala_logged', 'true');
+        document.getElementById('loginModal').classList.add('hidden');
+      } else {
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('malala_logged');
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    function loadAdminProducts() {
+      const stored = localStorage.getItem('malala_products');
+      if (stored) {
+        try {
+          adminProducts = JSON.parse(stored);
+        } catch(e) {
+          adminProducts = [...defaultProducts];
+        }
+      } else {
+        adminProducts = [...defaultProducts];
+        localStorage.setItem('malala_products', JSON.stringify(adminProducts));
+      }
+      renderAdminTable();
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('malala_products', JSON.stringify(adminProducts));
+      renderAdminTable();
+    }
+
+    function renderAdminTable() {
+      const q = document.getElementById('adminSearch').value.toLowerCase();
+      const filtered = adminProducts.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.badge.toLowerCase().includes(q)
+      );
+
+      document.getElementById('statTotal').innerText = adminProducts.length;
+
+      const tbody = document.getElementById('adminProductsTable');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="p-8 text-center text-gray-400">Nenhum produto encontrado.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => `
+        <tr class="hover:bg-gray-50/80 transition-colors">
+          <td class="p-4 flex items-center gap-3">
+            <img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200">
+            <div>
+              <p class="font-bold text-gray-900">${p.title}</p>
+              <p class="text-[10px] text-gray-400 line-clamp-1 max-w-xs">${p.desc}</p>
+            </div>
+          </td>
+          <td class="p-4 font-bold text-gray-700">${p.category}</td>
+          <td class="p-4">
+            <span class="bg-[#FF5500]/10 text-[#FF5500] font-bold px-2.5 py-1 rounded-full text-[10px] uppercase">${p.badge}</span>
+          </td>
+          <td class="p-4 font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</td>
+          <td class="p-4 text-right space-x-1">
+            <button onclick="editProduct(${p.id})" class="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors" title="Editar">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteProduct(${p.id})" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Deletar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openAddProductModal() {
+      document.getElementById('editProductId').value = '';
+      document.getElementById('formModalTitle').innerText = 'Novo Produto';
+      document.getElementById('formTitle').value = '';
+      document.getElementById('formCategory').value = 'Perfumes';
+      document.getElementById('formPrice').value = '';
+      document.getElementById('formBadge').value = 'Lançamento';
+      document.getElementById('formImage').value = '';
+      document.getElementById('formDesc').value = '';
+      document.getElementById('productFormModal').classList.remove('hidden');
+    }
+
+    function editProduct(id) {
+      const p = adminProducts.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('editProductId').value = p.id;
+      document.getElementById('formModalTitle').innerText = 'Editar Produto';
+      document.getElementById('formTitle').value = p.title;
+      document.getElementById('formCategory').value = p.category;
+      document.getElementById('formPrice').value = p.price;
+      document.getElementById('formBadge').value = p.badge;
+      document.getElementById('formImage').value = p.image;
+      document.getElementById('formDesc').value = p.desc;
+      document.getElementById('productFormModal').classList.remove('hidden');
+    }
+
+    function closeProductFormModal() {
+      document.getElementById('productFormModal').classList.add('hidden');
+    }
+
+    function saveProduct(e) {
+      e.preventDefault();
+      const idVal = document.getElementById('editProductId').value;
+      const title = document.getElementById('formTitle').value;
+      const category = document.getElementById('formCategory').value;
+      const price = parseFloat(document.getElementById('formPrice').value);
+      const badge = document.getElementById('formBadge').value;
+      const image = document.getElementById('formImage').value;
+      const desc = document.getElementById('formDesc').value;
+
+      if (idVal) {
+        const p = adminProducts.find(x => x.id === parseInt(idVal));
+        if (p) {
+          p.title = title;
+          p.category = category;
+          p.price = price;
+          p.badge = badge;
+          p.image = image;
+          p.desc = desc;
+        }
+      } else {
+        const newId = adminProducts.length > 0 ? Math.max(...adminProducts.map(x => x.id)) + 1 : 1;
+        adminProducts.unshift({ id: newId, title, category, price, badge, image, desc });
+      }
+
+      saveToLocalStorage();
+      closeProductFormModal();
+    }
+
+    function deleteProduct(id) {
+      if (confirm('Tem certeza que deseja excluir este produto do catálogo?')) {
+        adminProducts = adminProducts.filter(x => x.id !== id);
+        saveToLocalStorage();
+      }
+    }
+
+    function resetDefaultCatalog() {
+      if (confirm('Deseja restaurar o catálogo padrão de demonstração? Todas as alterações manuais serão resetadas.')) {
+        adminProducts = [...defaultProducts];
+        saveToLocalStorage();
+      }
+    }
+  </script>
+</body>
+</html>

@@ -494,7 +494,7 @@
 
   <!-- SCRIPT -->
   <script>
-    const products = [
+    const defaultProducts = [
       // 1. TECNOLOGIA
       { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
       { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
@@ -516,6 +516,21 @@
       { id: 14, title: 'Dior Sauvage Eau de Parfum', category: 'Perfumes', price: 890.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Fragrância potente e misteriosa com notas de bergamota da Calábria e absoluto de baunilha de Papua-Nova Guiné.' },
       { id: 15, title: 'Carolina Herrera Good Girl EDP', category: 'Perfumes', price: 650.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Icônico frasco de salto fino. Combinação ousada de jasmim luminoso e cacau rico e profundo.' }
     ];
+
+    function loadProducts() {
+      const stored = localStorage.getItem('malala_products');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch(e) {
+          console.error(e);
+        }
+      }
+      localStorage.setItem('malala_products', JSON.stringify(defaultProducts));
+      return defaultProducts;
+    }
+
+    let products = loadProducts();
 
     const categories = [
       { name: 'Todos', icon: 'fa-border-all' },
