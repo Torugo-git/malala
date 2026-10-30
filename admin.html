@@ -182,7 +182,7 @@
       <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
         <div>
           <h3 class="font-extrabold text-gray-900 text-base">Acompanhamento de Vendas & Clientes</h3>
-          <p class="text-xs text-gray-500">Veja quem comprou, o valor pago, os itens e o endereço completo de entrega.</p>
+          <p class="text-xs text-gray-500">Veja quem comprou, atualize o status de entrega e consulte os endereços.</p>
         </div>
         <button onclick="loadOrders()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2">
           <i class="fa-solid fa-arrows-rotate text-[#FF5500]"></i> Atualizar Pedidos
@@ -277,12 +277,10 @@
             </div>
             
             <div id="imagesContainer" class="space-y-2">
-                <!-- Imagem Principal (Obrigatória) -->
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-bold text-gray-500 w-16">Principal</span>
                     <input type="url" id="formImage" placeholder="https://..." class="flex-1 bg-white border border-gray-200 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
                 </div>
-                <!-- Campos extra serão injetados aqui -->
             </div>
         </div>
 
@@ -313,11 +311,11 @@
       { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
       { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
       { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
-      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/866399277_18080692274560136_7577002902893912819_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=NDAxNjc2NzQzMzAzNjgxOTI4NA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=Oo8uL0FYDvYQ7kNvwGcqJWo&_nc_oc=Ado5PeUeR-2avYRzEitpR-77q9qRCfTQBWZqO3lqqPuiJMVRGWBp9k3VtZ4tc6lzf2Q&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=Fc5Olwal4voyS7DILCbM5A&_nc_ss=7baaf&oh=00_AQQS3tSBvXShsxxiiOgimN5VUAAmzCmI_OIxUpqe14kB4A&oe=6AE8D783', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!\n\nPorque ser discreta é uma opção… mas ser inesquecível é outro nível!' },
-      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/790318840_18067832531560136_5600939539493415466_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=105&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NDM4NzY4ODQyNDU2NDU3OQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=qq7obmm2cKEQ7kNvwHv-ajA&_nc_oc=AdrJ8HcBq7w5Z7-pmBs2Udv-0VeBXcfDw2FILiIZS_9ZP9_VoGqXSyGHHNYRrmE7u4U&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTB17lCYByJk6viiUrMyZ-s55GzkMGLl7Xf2_pJgEOVFw&oe=6AE8BA5C', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗\n\n🌷 Elegância em cada detalhe.\n✨ Uma fragrância para mulheres que sabem o seu valor.' },
-      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: 'Nicho', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/785265639_18067687709560136_7819979996996356957_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3Mzg2NDAxNTIyMjAwNjQwNQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=LwkKUdtPHsYQ7kNvwFFg7ES&_nc_oc=AdpUr_G3xiXmtbb7x3NHvVHoxGtrwjc2waOSKtZr54QvIXcVEYmU1s6R9NFxK4N9ibE&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTM0WlVg9rOnDNo-7kCupUXJ3WbYUXSvpGhOVhy5KRrhQ&oe=6AE8BEFB', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante\n\nUm perfume para quem gosta de chegar e deixar sua marca.' },
-      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/791923078_18068601059560136_4542283574722556700_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NjkxNDc3OTI5MjQzODExMQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTQ0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=N5hOQ3BKFcAQ7kNvwE1Gzi2&_nc_oc=AdpnSZSs5Io0KEFM3RS0RiZDL2-u7UHNv20RHUkAB54W38qqu6CI7gJGGzectQQMJQc&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQS-E8cncE1qfdsrmi1Yar--a853Tkcu7KypH2lIrVnhVA&oe=6AE8D406', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨\n\nIntenso e elegante\nAlta fixação\nPerfume masculino de presença' },
-      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: 'Importado', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/828562275_18074176826560136_7751179422484004366_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=Mzk5NjE3MDc3OTUxOTE4OTQ0MQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI4NC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=GNCckttrNToQ7kNvwGRNRQO&_nc_oc=AdqZFu7W9GsYWZzpstqKW3V_ZVMyO4Vvap_3VLGEUObxyf3a3iwTmhP1FonhBF4YKRQ&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=L28XmKu_d7CmkQLF2tO3jQ&_nc_ss=7baaf&oh=00_AQS5gdsWiyBwbGOAuJnf71gxkX1iQNxCvyvu0wJf5XwZ3w&oe=6AE8CF91', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.\n\nUma combinação de notas aromáticas, amadeiradas e quentes para quem gosta de perfume com personalidade.' }
+      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!' },
+      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗' },
+      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante' },
+      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨' },
+      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.' }
     ];
 
     const defaultFirebaseConfig = {
@@ -337,23 +335,15 @@
       let config = defaultFirebaseConfig;
       const savedCfg = localStorage.getItem('malala_firebase_config');
       if (savedCfg) {
-        try {
-          config = JSON.parse(savedCfg);
-        } catch(e) {
-          console.warn("Configuração do Firebase inválida, usando padrão:", e);
-        }
+        try { config = JSON.parse(savedCfg); } catch(e) {}
       }
 
       try {
         if (config && config.apiKey && config.apiKey !== "SUA_API_KEY") {
-          if (!firebase.apps.length) {
-            firebase.initializeApp(config);
-          }
+          if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
         }
-      } catch(e) {
-        console.warn("Erro ao inicializar Firebase no admin:", e);
-      }
+      } catch(e) { console.warn("Erro ao inicializar Firebase no admin:", e); }
     }
 
     let ordersList = [];
@@ -382,16 +372,12 @@
     function loadOrders() {
       if (!db) {
         const stored = localStorage.getItem('malala_orders');
-        if (stored) {
-          try { ordersList = JSON.parse(stored); } catch(e) {}
-        }
+        if (stored) { try { ordersList = JSON.parse(stored); } catch(e) {} }
         renderOrdersTable();
         return;
       }
 
-      if (ordersUnsubscribe) {
-        ordersUnsubscribe();
-      }
+      if (ordersUnsubscribe) ordersUnsubscribe();
 
       ordersUnsubscribe = db.collection('orders')
         .orderBy('createdAt', 'desc')
@@ -400,16 +386,35 @@
           snap.forEach(doc => {
             remoteList.push({ id: doc.id, ...doc.data() });
           });
-          
           ordersList = remoteList;
           localStorage.setItem('malala_orders', JSON.stringify(ordersList));
-          
           renderOrdersTable();
         }, err => {
-          console.warn('Erro ao carregar pedidos em tempo real do Firestore:', err);
+          console.warn('Erro ao carregar pedidos em tempo real:', err);
           renderOrdersTable();
         });
     }
+
+    // --- FUNÇÃO PARA ATUALIZAR O STATUS DE ENTREGA NO FIREBASE ---
+    async function updateDeliveryStatus(orderId, newStatus) {
+      if (!db) {
+        alert('Firestore não inicializado para sincronizar o status.');
+        return;
+      }
+      try {
+        await db.collection('orders').doc(orderId).update({
+          deliveryStatus: newStatus
+        });
+        // Atualiza localmente também para feedback instantâneo
+        const ord = ordersList.find(o => o.id === orderId);
+        if (ord) ord.deliveryStatus = newStatus;
+        renderOrdersTable();
+      } catch (err) {
+        console.error("Erro ao atualizar status de entrega:", err);
+        alert("Erro ao atualizar o status no Firebase.");
+      }
+    }
+    // -------------------------------------------------------------
 
     function renderOrdersTable() {
       const container = document.getElementById('adminOrdersContainer');
@@ -437,6 +442,8 @@
           ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
           : 'bg-amber-100 text-amber-800 border-amber-200';
 
+        const currentDelivery = ord.deliveryStatus || 'Recebido';
+
         const itemsSummary = (ord.items || []).map(i => `
           <div class="flex items-center justify-between text-xs py-1 border-b border-gray-100 last:border-0">
             <span class="font-bold text-gray-800">${i.quantity || 1}x ${i.title}</span>
@@ -445,7 +452,7 @@
         `).join('');
 
         return `
-          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-all">
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-all space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
               <div class="flex items-center gap-3">
                 <span class="font-mono text-xs font-black bg-gray-100 px-3 py-1 rounded-lg text-gray-700">${ord.id}</span>
@@ -453,12 +460,23 @@
                 <span class="text-xs text-gray-400">(${payer.email || 'Sem e-mail'})</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-[10px] uppercase font-bold px-3 py-1 rounded-full border ${statusClass}">${ord.status || 'Pendente'}</span>
+                <span class="text-[10px] uppercase font-bold px-3 py-1 rounded-full border ${statusClass}">Pagamento: ${ord.status || 'Pendente'}</span>
                 <span class="text-xs font-black text-[#FF5500]">R$ ${(ord.total || ord.totalAmount || 0).toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
+            <!-- CONTROLO DE STATUS DE ENTREGA -->
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span class="text-xs font-bold text-gray-700"><i class="fa-solid fa-truck-fast text-[#FF5500]"></i> Atualizar Status de Envio:</span>
+              <select onchange="updateDeliveryStatus('${ord.id}', this.value)" class="bg-white border border-gray-200 text-xs font-bold text-gray-800 py-1.5 px-3 rounded-lg focus:outline-none focus:border-[#FF5500]">
+                <option value="Recebido" ${currentDelivery === 'Recebido' ? 'selected' : ''}>1. Pedido Recebido</option>
+                <option value="Preparando" ${currentDelivery === 'Preparando' ? 'selected' : ''}>2. Em Separação</option>
+                <option value="Caminho" ${currentDelivery === 'Caminho' ? 'selected' : ''}>3. A Caminho</option>
+                <option value="Entregue" ${currentDelivery === 'Entregue' ? 'selected' : ''}>4. Entregue</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               <div>
                 <p class="text-[10px] uppercase font-bold text-gray-400 mb-1"><i class="fa-solid fa-location-dot text-[#FF5500]"></i> Endereço de Entrega</p>
                 <p class="text-xs text-gray-700 font-medium leading-relaxed bg-gray-50 p-2.5 rounded-xl border border-gray-100 whitespace-pre-line">${addrText}</p>
@@ -489,7 +507,6 @@
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
         if (doc.exists && doc.data().products) {
-          // Garante que produtos antigos tenham as novas propriedades
           adminProducts = doc.data().products.map(p => ({
               ...p,
               stock: p.stock !== undefined ? p.stock : 10,
@@ -559,7 +576,7 @@
 
     function logout() {
       sessionStorage.removeItem('malala_logged');
-      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('loginModal').classList.add('hidden');
     }
 
     function loadAdminProducts() {
@@ -567,7 +584,6 @@
       if (stored) {
         try {
           adminProducts = JSON.parse(stored);
-          // Migra estrutura antiga local
           adminProducts = adminProducts.map(p => ({
               ...p,
               stock: p.stock !== undefined ? p.stock : 10,
@@ -659,7 +675,6 @@
       `}).join('');
     }
 
-    // --- LÓGICA DE MULTIPLAS IMAGENS NO FORMULÁRIO ---
     let extraImagesCount = 0;
 
     function resetImageFields() {
@@ -704,7 +719,6 @@
         }
         return extraImgs;
     }
-    // ---------------------------------------------------
 
     function openAddProductModal() {
       document.getElementById('editProductId').value = '';
@@ -712,11 +726,10 @@
       document.getElementById('formTitle').value = '';
       document.getElementById('formCategory').value = 'Perfumes';
       document.getElementById('formPrice').value = '';
-      document.getElementById('formStock').value = '10'; // Default
+      document.getElementById('formStock').value = '10';
       document.getElementById('formBadge').value = 'Lançamento';
       document.getElementById('formDesc').value = '';
       resetImageFields();
-      
       document.getElementById('productFormModal').classList.remove('hidden');
     }
 
@@ -757,7 +770,6 @@
       const badge = document.getElementById('formBadge').value;
       const image = document.getElementById('formImage').value;
       const desc = document.getElementById('formDesc').value;
-      
       const extraImages = getExtraImagesFromForm();
 
       if (idVal) {
