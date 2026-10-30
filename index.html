@@ -393,33 +393,41 @@
   </section>
 
   <!-- FOOTER -->
-  <footer class="bg-gray-900 text-gray-400 py-10 text-xs border-t border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-      <div>
-        <div class="flex items-center gap-3 mb-3">
-          <img src="logo-circle.png" alt="MALALA STORE" class="w-8 h-8 rounded-full border border-[#FF5500]/40">
-          <span class="font-bold text-white text-sm">MALALA STORE</span>
+  <footer class="bg-gray-900 text-gray-400 py-12 text-xs border-t border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <img src="logo-circle.png" alt="MALALA STORE" class="w-10 h-10 rounded-full border border-[#FF5500]/40">
+          <span class="font-black text-white text-base tracking-widest font-serif">MALALA STORE</span>
         </div>
-        <p class="text-gray-400 leading-relaxed">Sua loja referência em Tecnologia, Produtos de Beleza e Perfumaria Importada/Árabe. Vai comprando & recebendo.</p>
+        <p class="text-gray-400 leading-relaxed mb-5 max-w-sm">Sua loja referência em Tecnologia, Produtos de Beleza e Perfumaria Importada e Árabe. Vai comprando & recebendo.</p>
+        <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 inline-block space-y-1.5 text-[10px] text-gray-400">
+          <p><strong class="text-gray-300">Razão Social:</strong> MALALA STORE LTDA</p>
+          <p><strong class="text-gray-300">CNPJ:</strong> 68.931.318/0001-20</p>
+          <p><strong class="text-gray-300">Sede:</strong> Rio de Janeiro, RJ - Brasil</p>
+        </div>
       </div>
       <div>
-        <p class="font-bold text-white text-sm mb-2">Categorias</p>
-        <ul class="space-y-1.5 text-gray-300">
+        <p class="font-bold text-white text-sm mb-4">Categorias</p>
+        <ul class="space-y-2.5 text-gray-400">
           <li><button onclick="selectCategory('Tecnologia')" class="hover:text-[#FF5500] transition-colors">Tecnologia</button></li>
           <li><button onclick="selectCategory('Beleza')" class="hover:text-[#FF5500] transition-colors">Beleza</button></li>
           <li><button onclick="selectCategory('Perfumes')" class="hover:text-[#FF5500] transition-colors">Perfumes</button></li>
         </ul>
       </div>
       <div>
-        <p class="font-bold text-white text-sm mb-2">Atendimento WhatsApp</p>
-        <p class="text-gray-400 mb-3">Peça pelo WhatsApp ou tire dúvidas diretamente com nossa equipe.</p>
-        <a href="https://wa.me/5521992663800" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-xs hover:bg-emerald-500 transition-all">
-          <i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp (+55 21 99266-3800)
-        </a>
+        <p class="font-bold text-white text-sm mb-4">Institucional</p>
+        <ul class="space-y-2.5 text-gray-400">
+          <li><a href="termos.html#termos" class="hover:text-[#FF5500] transition-colors">Termos de Uso</a></li>
+          <li><a href="termos.html#privacidade" class="hover:text-[#FF5500] transition-colors">Política de Privacidade (LGPD)</a></li>
+          <li><a href="termos.html#trocas" class="hover:text-[#FF5500] transition-colors">Trocas e Devoluções</a></li>
+          <li><a href="termos.html#envio" class="hover:text-[#FF5500] transition-colors">Prazos de Envio</a></li>
+        </ul>
       </div>
     </div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-800 pt-6 text-center text-gray-500">
-      &copy; 2026 MALALA STORE. Todos os direitos reservados.
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left text-[10px] text-gray-500">
+      <p>&copy; 2026 MALALA STORE LTDA. Todos os direitos reservados.</p>
+      <p class="flex items-center gap-1.5 font-bold">Ambiente 100% Seguro <i class="fa-solid fa-lock text-emerald-500"></i></p>
     </div>
   </footer>
 
@@ -599,12 +607,22 @@
             </div>
           </div>
 
-          <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+          <!-- CHECKBOX DE TERMOS (NOVO) -->
+          <div class="pt-2">
+            <label class="flex items-start gap-2.5 cursor-pointer group">
+              <input type="checkbox" id="payTerms" class="mt-0.5 rounded text-[#FF5500] focus:ring-[#FF5500]" required>
+              <span class="text-[10px] text-gray-500 group-hover:text-gray-700 transition-colors leading-tight">
+                Li e concordo com os <a href="termos.html#termos" target="_blank" class="text-[#FF5500] font-bold hover:underline">Termos de Uso</a>, a <a href="termos.html#privacidade" target="_blank" class="text-[#FF5500] font-bold hover:underline">Política de Privacidade</a> e a regra de <a href="termos.html#trocas" target="_blank" class="text-[#FF5500] font-bold hover:underline">Trocas e Devoluções</a>.
+              </span>
+            </label>
+          </div>
+
+          <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span class="text-xs text-gray-400 block">Total a Pagar</span>
               <span id="checkoutTotalDisplay" class="text-xl font-black text-[#FF5500]">R$ 0,00</span>
             </div>
-            <button type="submit" id="paySubmitBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2">
+            <button type="submit" id="paySubmitBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 w-full sm:w-auto">
               <i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX
             </button>
           </div>
