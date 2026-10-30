@@ -164,7 +164,7 @@
               <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
                 <th class="p-4">Produto</th>
                 <th class="p-4">Categoria</th>
-                <th class="p-4">Selo / Tag</th>
+                <th class="p-4">Estoque</th>
                 <th class="p-4">Preço</th>
                 <th class="p-4 text-right">Ações</th>
               </tr>
@@ -228,13 +228,13 @@
 
   <!-- MODAL DE ADICIONAR / EDITAR PRODUTO -->
   <div id="productFormModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-gray-100 relative">
+    <div class="bg-white max-w-2xl w-full rounded-3xl p-6 shadow-2xl border border-gray-100 relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeProductFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 p-1">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
       <h3 class="text-xl font-extrabold text-gray-900 mb-1" id="formModalTitle">Novo Produto</h3>
-      <p class="text-xs text-gray-500 mb-5">Preencha as informações para atualizar o catálogo.</p>
+      <p class="text-xs text-gray-500 mb-5">Preencha as informações, estoque e imagens para atualizar o catálogo.</p>
 
       <form onsubmit="saveProduct(event)" class="space-y-4">
         <input type="hidden" id="editProductId">
@@ -244,7 +244,7 @@
           <input type="text" id="formTitle" placeholder="Ex: Lattafa Asad EDP 100ml" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-bold text-gray-700 mb-1">Categoria</label>
             <select id="formCategory" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
@@ -253,23 +253,37 @@
               <option value="Beleza">Beleza</option>
             </select>
           </div>
-
           <div>
             <label class="block text-xs font-bold text-gray-700 mb-1">Preço (R$)</label>
             <input type="number" step="0.01" id="formPrice" placeholder="Ex: 290.00" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
           </div>
+           <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Estoque</label>
+            <input type="number" id="formStock" placeholder="Qtd. Disponível" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+          </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">Selo / Tag Destaque</label>
-            <input type="text" id="formBadge" placeholder="Ex: Perfume Árabe, Lançamento" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
-          </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-700 mb-1">Selo / Tag Destaque</label>
+           <input type="text" id="formBadge" placeholder="Ex: Perfume Árabe, Lançamento" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+        </div>
 
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">URL da Imagem</label>
-            <input type="url" id="formImage" placeholder="https://..." class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
-          </div>
+        <div class="border border-gray-200 p-4 rounded-xl bg-gray-50">
+            <div class="flex justify-between items-center mb-3">
+                <label class="block text-xs font-bold text-gray-700">Imagens do Produto (URL)</label>
+                <button type="button" onclick="addExtraImageField()" class="text-xs text-[#FF5500] font-bold hover:underline">
+                    + Adicionar Imagem Extra
+                </button>
+            </div>
+            
+            <div id="imagesContainer" class="space-y-2">
+                <!-- Imagem Principal (Obrigatória) -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-gray-500 w-16">Principal</span>
+                    <input type="url" id="formImage" placeholder="https://..." class="flex-1 bg-white border border-gray-200 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+                </div>
+                <!-- Campos extra serão injetados aqui -->
+            </div>
         </div>
 
         <div>
@@ -292,18 +306,18 @@
 
   <script>
     const defaultProducts = [
-      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
-      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
-      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
-      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
-      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
-      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
-      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
-      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/866399277_18080692274560136_7577002902893912819_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=NDAxNjc2NzQzMzAzNjgxOTI4NA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=Oo8uL0FYDvYQ7kNvwGcqJWo&_nc_oc=Ado5PeUeR-2avYRzEitpR-77q9qRCfTQBWZqO3lqqPuiJMVRGWBp9k3VtZ4tc6lzf2Q&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=Fc5Olwal4voyS7DILCbM5A&_nc_ss=7baaf&oh=00_AQQS3tSBvXShsxxiiOgimN5VUAAmzCmI_OIxUpqe14kB4A&oe=6AE8D783', desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!\n\nPorque ser discreta é uma opção… mas ser inesquecível é outro nível!' },
-      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/790318840_18067832531560136_5600939539493415466_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=105&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NDM4NzY4ODQyNDU2NDU3OQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=qq7obmm2cKEQ7kNvwHv-ajA&_nc_oc=AdrJ8HcBq7w5Z7-pmBs2Udv-0VeBXcfDw2FILiIZS_9ZP9_VoGqXSyGHHNYRrmE7u4U&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTB17lCYByJk6viiUrMyZ-s55GzkMGLl7Xf2_pJgEOVFw&oe=6AE8BA5C', desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗\n\n🌷 Elegância em cada detalhe.\n✨ Uma fragrância para mulheres que sabem o seu valor.' },
-      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, badge: 'Nicho', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/785265639_18067687709560136_7819979996996356957_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3Mzg2NDAxNTIyMjAwNjQwNQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=LwkKUdtPHsYQ7kNvwFFg7ES&_nc_oc=AdpUr_G3xiXmtbb7x3NHvVHoxGtrwjc2waOSKtZr54QvIXcVEYmU1s6R9NFxK4N9ibE&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTM0WlVg9rOnDNo-7kCupUXJ3WbYUXSvpGhOVhy5KRrhQ&oe=6AE8BEFB', desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante\n\nUm perfume para quem gosta de chegar e deixar sua marca.' },
-      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/791923078_18068601059560136_4542283574722556700_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NjkxNDc3OTI5MjQzODExMQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTQ0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=N5hOQ3BKFcAQ7kNvwE1Gzi2&_nc_oc=AdpnSZSs5Io0KEFM3RS0RiZDL2-u7UHNv20RHUkAB54W38qqu6CI7gJGGzectQQMJQc&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQS-E8cncE1qfdsrmi1Yar--a853Tkcu7KypH2lIrVnhVA&oe=6AE8D406', desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨\n\nIntenso e elegante\nAlta fixação\nPerfume masculino de presença' },
-      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, badge: 'Importado', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/828562275_18074176826560136_7751179422484004366_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=Mzk5NjE3MDc3OTUxOTE4OTQ0MQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI4NC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=GNCckttrNToQ7kNvwGRNRQO&_nc_oc=AdqZFu7W9GsYWZzpstqKW3V_ZVMyO4Vvap_3VLGEUObxyf3a3iwTmhP1FonhBF4YKRQ&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=L28XmKu_d7CmkQLF2tO3jQ&_nc_ss=7baaf&oh=00_AQS5gdsWiyBwbGOAuJnf71gxkX1iQNxCvyvu0wJf5XwZ3w&oe=6AE8CF91', desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.\n\nUma combinação de notas aromáticas, amadeiradas e quentes para quem gosta de perfume com personalidade.' }
+      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
+      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
+      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, stock: 8, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
+      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, stock: 50, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
+      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
+      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
+      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
+      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/866399277_18080692274560136_7577002902893912819_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=NDAxNjc2NzQzMzAzNjgxOTI4NA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=Oo8uL0FYDvYQ7kNvwGcqJWo&_nc_oc=Ado5PeUeR-2avYRzEitpR-77q9qRCfTQBWZqO3lqqPuiJMVRGWBp9k3VtZ4tc6lzf2Q&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=Fc5Olwal4voyS7DILCbM5A&_nc_ss=7baaf&oh=00_AQQS3tSBvXShsxxiiOgimN5VUAAmzCmI_OIxUpqe14kB4A&oe=6AE8D783', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!\n\nPorque ser discreta é uma opção… mas ser inesquecível é outro nível!' },
+      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/790318840_18067832531560136_5600939539493415466_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=105&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NDM4NzY4ODQyNDU2NDU3OQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=qq7obmm2cKEQ7kNvwHv-ajA&_nc_oc=AdrJ8HcBq7w5Z7-pmBs2Udv-0VeBXcfDw2FILiIZS_9ZP9_VoGqXSyGHHNYRrmE7u4U&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTB17lCYByJk6viiUrMyZ-s55GzkMGLl7Xf2_pJgEOVFw&oe=6AE8BA5C', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗\n\n🌷 Elegância em cada detalhe.\n✨ Uma fragrância para mulheres que sabem o seu valor.' },
+      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: 'Nicho', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/785265639_18067687709560136_7819979996996356957_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3Mzg2NDAxNTIyMjAwNjQwNQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI1NS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=LwkKUdtPHsYQ7kNvwFFg7ES&_nc_oc=AdpUr_G3xiXmtbb7x3NHvVHoxGtrwjc2waOSKtZr54QvIXcVEYmU1s6R9NFxK4N9ibE&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQTM0WlVg9rOnDNo-7kCupUXJ3WbYUXSvpGhOVhy5KRrhQ&oe=6AE8BEFB', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante\n\nUm perfume para quem gosta de chegar e deixar sua marca.' },
+      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: 'Perfume Árabe', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/791923078_18068601059560136_4542283574722556700_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ig_cache_key=Mzk3NjkxNDc3OTI5MjQzODExMQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTQ0OC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=N5hOQ3BKFcAQ7kNvwE1Gzi2&_nc_oc=AdpnSZSs5Io0KEFM3RS0RiZDL2-u7UHNv20RHUkAB54W38qqu6CI7gJGGzectQQMJQc&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=x7L-e-58-0nQx1jhuchLwA&_nc_ss=7baaf&oh=00_AQS-E8cncE1qfdsrmi1Yar--a853Tkcu7KypH2lIrVnhVA&oe=6AE8D406', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨\n\nIntenso e elegante\nAlta fixação\nPerfume masculino de presença' },
+      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: 'Importado', image: 'https://instagram.fgig14-2.fna.fbcdn.net/v/t51.82787-15/828562275_18074176826560136_7751179422484004366_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ig_cache_key=Mzk5NjE3MDc3OTUxOTE4OTQ0MQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTI4NC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=GNCckttrNToQ7kNvwGRNRQO&_nc_oc=AdqZFu7W9GsYWZzpstqKW3V_ZVMyO4Vvap_3VLGEUObxyf3a3iwTmhP1FonhBF4YKRQ&_nc_zt=23&_nc_ht=instagram.fgig14-2.fna&_nc_gid=L28XmKu_d7CmkQLF2tO3jQ&_nc_ss=7baaf&oh=00_AQS5gdsWiyBwbGOAuJnf71gxkX1iQNxCvyvu0wJf5XwZ3w&oe=6AE8CF91', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.\n\nUma combinação de notas aromáticas, amadeiradas e quentes para quem gosta de perfume com personalidade.' }
     ];
 
     const defaultFirebaseConfig = {
@@ -475,7 +489,12 @@
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
         if (doc.exists && doc.data().products) {
-          adminProducts = doc.data().products;
+          // Garante que produtos antigos tenham as novas propriedades
+          adminProducts = doc.data().products.map(p => ({
+              ...p,
+              stock: p.stock !== undefined ? p.stock : 10,
+              images: p.images || []
+          }));
           localStorage.setItem('malala_products', JSON.stringify(adminProducts));
           renderAdminTable();
         }
@@ -548,6 +567,12 @@
       if (stored) {
         try {
           adminProducts = JSON.parse(stored);
+          // Migra estrutura antiga local
+          adminProducts = adminProducts.map(p => ({
+              ...p,
+              stock: p.stock !== undefined ? p.stock : 10,
+              images: p.images || []
+          }));
         } catch(e) {
           adminProducts = [...defaultProducts];
         }
@@ -560,7 +585,11 @@
       if (db) {
         db.collection('malala_store').doc('catalog').get().then(doc => {
           if (doc.exists && doc.data().products) {
-            adminProducts = doc.data().products;
+            adminProducts = doc.data().products.map(p => ({
+              ...p,
+              stock: p.stock !== undefined ? p.stock : 10,
+              images: p.images || []
+            }));
             localStorage.setItem('malala_products', JSON.stringify(adminProducts));
             renderAdminTable();
           }
@@ -597,7 +626,12 @@
         return;
       }
 
-      tbody.innerHTML = filtered.map(p => `
+      tbody.innerHTML = filtered.map(p => {
+        let stockClass = "bg-emerald-100 text-emerald-800";
+        if (p.stock === 0) stockClass = "bg-red-100 text-red-800";
+        else if (p.stock <= 3) stockClass = "bg-amber-100 text-amber-800";
+
+        return `
         <tr class="hover:bg-gray-50/80 transition-colors">
           <td class="p-4 flex items-center gap-3">
             <img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200">
@@ -608,7 +642,9 @@
           </td>
           <td class="p-4 font-bold text-gray-700">${p.category}</td>
           <td class="p-4">
-            <span class="bg-[#FF5500]/10 text-[#FF5500] font-bold px-2.5 py-1 rounded-full text-[10px] uppercase">${p.badge}</span>
+            <span class="font-bold px-2.5 py-1 rounded-full text-[10px] uppercase ${stockClass}">
+                ${p.stock} un.
+            </span>
           </td>
           <td class="p-4 font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</td>
           <td class="p-4 text-right space-x-1">
@@ -620,8 +656,55 @@
             </button>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
+
+    // --- LÓGICA DE MULTIPLAS IMAGENS NO FORMULÁRIO ---
+    let extraImagesCount = 0;
+
+    function resetImageFields() {
+        extraImagesCount = 0;
+        const container = document.getElementById('imagesContainer');
+        container.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-gray-500 w-16">Principal</span>
+                <input type="url" id="formImage" placeholder="https://..." class="flex-1 bg-white border border-gray-200 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+        `;
+    }
+
+    function addExtraImageField(val = '') {
+        if (extraImagesCount >= 5) {
+            alert('Pode adicionar no máximo 5 imagens extra por produto.');
+            return;
+        }
+        extraImagesCount++;
+        const id = `extraImg_${extraImagesCount}`;
+        const container = document.getElementById('imagesContainer');
+        const div = document.createElement('div');
+        div.className = "flex items-center gap-2 mt-2";
+        div.id = `container_${id}`;
+        div.innerHTML = `
+            <span class="text-[10px] font-bold text-gray-500 w-16 text-right">Extra ${extraImagesCount}</span>
+            <input type="url" id="${id}" value="${val}" placeholder="https://..." class="flex-1 bg-white border border-gray-200 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+            <button type="button" onclick="document.getElementById('container_${id}').remove(); extraImagesCount--;" class="text-red-500 hover:text-red-700 p-1">
+                <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function getExtraImagesFromForm() {
+        const extraImgs = [];
+        for (let i = 1; i <= 5; i++) {
+            const el = document.getElementById(`extraImg_${i}`);
+            if (el && el.value.trim() !== '') {
+                extraImgs.push(el.value.trim());
+            }
+        }
+        return extraImgs;
+    }
+    // ---------------------------------------------------
 
     function openAddProductModal() {
       document.getElementById('editProductId').value = '';
@@ -629,9 +712,11 @@
       document.getElementById('formTitle').value = '';
       document.getElementById('formCategory').value = 'Perfumes';
       document.getElementById('formPrice').value = '';
+      document.getElementById('formStock').value = '10'; // Default
       document.getElementById('formBadge').value = 'Lançamento';
-      document.getElementById('formImage').value = '';
       document.getElementById('formDesc').value = '';
+      resetImageFields();
+      
       document.getElementById('productFormModal').classList.remove('hidden');
     }
 
@@ -644,9 +729,17 @@
       document.getElementById('formTitle').value = p.title;
       document.getElementById('formCategory').value = p.category;
       document.getElementById('formPrice').value = p.price;
+      document.getElementById('formStock').value = p.stock !== undefined ? p.stock : 10;
       document.getElementById('formBadge').value = p.badge;
-      document.getElementById('formImage').value = p.image;
       document.getElementById('formDesc').value = p.desc;
+      
+      resetImageFields();
+      document.getElementById('formImage').value = p.image;
+      
+      if (p.images && p.images.length > 0) {
+          p.images.forEach(imgUrl => addExtraImageField(imgUrl));
+      }
+
       document.getElementById('productFormModal').classList.remove('hidden');
     }
 
@@ -660,9 +753,12 @@
       const title = document.getElementById('formTitle').value;
       const category = document.getElementById('formCategory').value;
       const price = parseFloat(document.getElementById('formPrice').value);
+      const stock = parseInt(document.getElementById('formStock').value, 10);
       const badge = document.getElementById('formBadge').value;
       const image = document.getElementById('formImage').value;
       const desc = document.getElementById('formDesc').value;
+      
+      const extraImages = getExtraImagesFromForm();
 
       if (idVal) {
         const p = adminProducts.find(x => x.id === parseInt(idVal));
@@ -670,13 +766,25 @@
           p.title = title;
           p.category = category;
           p.price = price;
+          p.stock = isNaN(stock) ? 0 : stock;
           p.badge = badge;
           p.image = image;
+          p.images = extraImages;
           p.desc = desc;
         }
       } else {
         const newId = adminProducts.length > 0 ? Math.max(...adminProducts.map(x => x.id)) + 1 : 1;
-        adminProducts.unshift({ id: newId, title, category, price, badge, image, desc });
+        adminProducts.unshift({ 
+            id: newId, 
+            title, 
+            category, 
+            price, 
+            stock: isNaN(stock) ? 0 : stock, 
+            badge, 
+            image, 
+            images: extraImages, 
+            desc 
+        });
       }
 
       saveToLocalStorage();

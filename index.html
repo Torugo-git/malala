@@ -133,8 +133,8 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotification" class="fixed top-5 right-5 z-50 transform translate-x-full opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-700">
-      <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
-        <i class="fa-solid fa-circle-check text-base"></i>
+      <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-lg" id="toastIconContainer">
+        <i class="fa-solid fa-circle-check" id="toastIcon"></i>
       </div>
       <div>
         <p class="text-xs font-bold" id="toastTitle">Item adicionado!</p>
@@ -447,6 +447,18 @@
       <h3 id="authModalTitle" class="text-xl font-extrabold text-gray-900">Entrar na Sua Conta</h3>
       <p id="authModalSub" class="text-xs text-gray-500 mt-1 mb-6">Acompanhe seus pedidos e receba ofertas exclusivas.</p>
 
+      <!-- BOTÃO GOOGLE -->
+      <button type="button" onclick="loginWithGoogle()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-3 mb-4">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continuar com o Google
+      </button>
+
+      <div class="my-4 flex items-center gap-3">
+        <div class="flex-1 h-px bg-gray-200"></div>
+        <span class="text-[10px] text-gray-400 font-bold uppercase">Ou usando e-mail</span>
+        <div class="flex-1 h-px bg-gray-200"></div>
+      </div>
+
       <form onsubmit="handleAuthSubmit(event)" class="space-y-4 text-left">
         <div id="nameFieldContainer" class="hidden">
           <label class="block text-xs font-bold text-gray-700 mb-1">Nome Completo</label>
@@ -461,6 +473,10 @@
         <div>
           <label class="block text-xs font-bold text-gray-700 mb-1">Senha</label>
           <input type="password" id="authPassword" placeholder="******" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+        </div>
+
+        <div id="forgotPasswordContainer" class="text-right">
+          <button type="button" onclick="handlePasswordReset()" class="text-[10px] text-gray-500 hover:text-[#FF5500] font-bold transition-colors">Esqueceu a senha?</button>
         </div>
 
         <button type="submit" id="authSubmitBtn" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center justify-center gap-2">
@@ -653,22 +669,34 @@
     </div>
   </div>
 
-  <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO -->
+  <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO (ATUALIZADO COM CARROSSEL) -->
   <div id="productModal" class="fixed inset-0 z-50 hidden overflow-y-auto p-3 sm:p-4 md:p-6 flex items-center justify-center">
     <div onclick="closeProductModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden my-auto max-h-[90vh] sm:max-h-[85vh] z-10">
+    <div class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden my-auto max-h-[90vh] sm:max-h-[85vh] z-10">
       <button onclick="closeProductModal()" class="absolute top-3 right-3 z-20 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-all border border-gray-100">
         <i class="fa-solid fa-xmark text-base"></i>
       </button>
 
-      <div class="md:w-1/2 bg-gray-50 relative h-52 sm:h-64 md:h-auto shrink-0">
-        <img id="modalProductImg" src="" alt="" class="w-full h-full object-cover">
-        <span id="modalProductBadge" class="absolute top-4 left-4 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
+      <!-- SEÇÃO DA IMAGEM E MINIATURAS -->
+      <div class="md:w-1/2 bg-gray-50 relative flex flex-col shrink-0">
+        <div class="h-52 sm:h-72 relative">
+            <img id="modalProductImg" src="" alt="" class="w-full h-full object-cover transition-opacity duration-300">
+            <span id="modalProductBadge" class="absolute top-4 left-4 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
+        </div>
+        
+        <!-- Galeria de miniaturas (injetada via JS) -->
+        <div id="modalThumbnails" class="flex items-center gap-2 p-3 overflow-x-auto scrollbar-none bg-white border-t border-gray-100">
+            <!-- Miniaturas entram aqui -->
+        </div>
       </div>
 
       <div class="md:w-1/2 p-5 sm:p-6 flex flex-col justify-between overflow-y-auto max-h-[calc(90vh-13rem)] md:max-h-[85vh]">
         <div>
-          <span id="modalProductCategory" class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]"></span>
+          <div class="flex items-center justify-between gap-2">
+              <span id="modalProductCategory" class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]"></span>
+              <span id="modalProductStock" class="text-[10px] font-bold px-2.5 py-1 rounded-full"></span>
+          </div>
+          
           <h3 id="modalProductTitle" class="text-lg sm:text-xl font-extrabold text-gray-900 mt-1"></h3>
           <p id="modalProductDesc" class="text-xs text-gray-600 mt-3 leading-relaxed whitespace-pre-line"></p>
 
@@ -702,24 +730,20 @@
 
   <!-- SCRIPT -->
   <script>
+    // Agora o defaultProducts inclui stock e array de imagens
     const defaultProducts = [
-      // 1. TECNOLOGIA
-      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
-      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
-      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
-      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
-
-      // 2. BELEZA
-      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
-      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
-      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
-
-      // 3. PERFUMES
-      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!' },
-      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗' },
-      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=600', desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante' },
-      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨' },
-      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.' }
+      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
+      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
+      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, stock: 8, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
+      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, stock: 50, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
+      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
+      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
+      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
+      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!' },
+      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗' },
+      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante' },
+      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨' },
+      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.' }
     ];
 
     const defaultFirebaseConfig = {
@@ -738,33 +762,28 @@
       let config = defaultFirebaseConfig;
       const savedCfg = localStorage.getItem('malala_firebase_config');
       if (savedCfg) {
-        try {
-          config = JSON.parse(savedCfg);
-        } catch(e) {
-          console.warn("Configuração do Firebase em localStorage inválida, usando padrão:", e);
-        }
+        try { config = JSON.parse(savedCfg); } catch(e) {}
       }
 
       try {
         if (config && config.apiKey && config.apiKey !== "SUA_API_KEY") {
-          if (!firebase.apps.length) {
-            firebase.initializeApp(config);
-          }
+          if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
         }
-      } catch(e) {
-        console.warn("Erro ao inicializar Firebase:", e);
-      }
+      } catch(e) { console.warn("Erro ao inicializar Firebase:", e); }
     }
 
     function loadProducts() {
       const stored = localStorage.getItem('malala_products');
       if (stored) {
         try {
-          return JSON.parse(stored);
-        } catch(e) {
-          console.error(e);
-        }
+          // Garante a migração da estrutura local (stock e images)
+          return JSON.parse(stored).map(p => ({
+            ...p,
+            stock: p.stock !== undefined ? p.stock : 10,
+            images: p.images || []
+          }));
+        } catch(e) { console.error(e); }
       }
       localStorage.setItem('malala_products', JSON.stringify(defaultProducts));
       return defaultProducts;
@@ -776,13 +795,69 @@
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
         if (doc.exists && doc.data().products) {
-          products = doc.data().products;
+          products = doc.data().products.map(p => ({
+            ...p,
+            stock: p.stock !== undefined ? p.stock : 10,
+            images: p.images || []
+          }));
           localStorage.setItem('malala_products', JSON.stringify(products));
           renderProducts();
+          // Atualiza o carrinho caso um produto tenha ficado sem stock de repente
+          verifyCartStock(); 
         }
       }, (err) => {
         console.warn("Erro ao sincronizar com Firebase:", err);
       });
+    }
+
+    // --- FUNÇÃO PARA DECREMENTAR O ESTOQUE NO FIREBASE APÓS COMPRA PAGA ---
+    async function decrementStock(purchasedItems) {
+      if (!db) return;
+      try {
+        const docRef = db.collection('malala_store').doc('catalog');
+        const docSnap = await docRef.get();
+        if (docSnap.exists && docSnap.data().products) {
+          let catProducts = docSnap.data().products;
+          let changed = false;
+
+          purchasedItems.forEach(item => {
+            const p = catProducts.find(x => String(x.id) === String(item.id));
+            if (p && p.stock !== undefined) {
+              p.stock = Math.max(0, p.stock - item.quantity);
+              changed = true;
+            }
+          });
+
+          if (changed) {
+            await docRef.update({
+              products: catProducts,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log("Estoque do catálogo reduzido com sucesso no Firebase.");
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao baixar estoque no catálogo:', e);
+      }
+    }
+    // ----------------------------------------------------------------------
+
+    function verifyCartStock() {
+      let changed = false;
+      cart.forEach(item => {
+        const p = products.find(x => x.id === item.id);
+        if (p && item.qty > p.stock) {
+          item.qty = p.stock;
+          changed = true;
+          if(p.stock === 0) {
+              cart = cart.filter(x => x.id !== p.id);
+          }
+        }
+      });
+      if (changed) {
+          updateCart();
+          showToast('Carrinho Atualizado', 'Alguns itens tiveram a quantidade ajustada devido ao estoque.', 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
+      }
     }
 
     const categories = [
@@ -818,8 +893,14 @@
           auth = firebase.auth();
           auth.onAuthStateChanged((user) => {
             if (user) {
+              if (user.providerData.some(p => p.providerId === 'password') && !user.emailVerified) {
+                auth.signOut().catch(() => {});
+                return;
+              }
               currentUser = { email: user.email, displayName: user.displayName || user.email.split('@')[0], uid: user.uid };
-              document.getElementById('authBtnLabel').innerText = currentUser.displayName;
+              document.getElementById('authBtnLabel').innerText = currentUser.displayName.split(' ')[0];
+            } else {
+              currentUser = null;
             }
           });
         } catch(e) {
@@ -830,15 +911,7 @@
 
     function openAuthModal() {
       if (currentUser) {
-        if (confirm(`Conectado como ${currentUser.email}. Deseja sair da conta?`)) {
-          if (auth && auth.currentUser) {
-            auth.signOut().catch(() => {});
-          }
-          localStorage.removeItem('malala_demo_user');
-          currentUser = null;
-          document.getElementById('authBtnLabel').innerText = 'Entrar';
-          showToast('Desconectado', 'Você saiu da sua conta.');
-        }
+        window.location.href = 'minha-conta.html';
         return;
       }
       document.getElementById('authModal').classList.remove('hidden');
@@ -853,9 +926,45 @@
       document.getElementById('authModalTitle').innerText = isRegisterMode ? 'Criar Sua Conta' : 'Entrar na Sua Conta';
       document.getElementById('authModalSub').innerText = isRegisterMode ? 'Cadastre-se para acompanhar pedidos' : 'Acompanhe seus pedidos e receba ofertas';
       document.getElementById('nameFieldContainer').classList.toggle('hidden', !isRegisterMode);
+      document.getElementById('forgotPasswordContainer').classList.toggle('hidden', isRegisterMode);
       document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Cadastrar Conta' : 'Entrar';
       document.getElementById('authToggleText').innerText = isRegisterMode ? 'Já tem conta?' : 'Ainda não tem conta?';
       document.getElementById('authToggleBtn').innerText = isRegisterMode ? 'Fazer Login' : 'Criar Conta';
+    }
+
+    async function loginWithGoogle() {
+      try {
+        if (!auth) throw new Error("Firebase Auth não inicializado");
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        currentUser = { email: user.email, displayName: user.displayName, uid: user.uid };
+        document.getElementById('authBtnLabel').innerText = currentUser.displayName.split(' ')[0];
+        showToast('Bem-vindo!', 'Login com Google efetuado com sucesso.');
+        closeAuthModal();
+      } catch (err) {
+        console.error('Erro no Google Login:', err);
+        alert('Erro ao fazer login com Google: Certifique-se de que ativou o método "Google" no painel Authentication do Firebase.');
+      }
+    }
+
+    async function handlePasswordReset() {
+      const email = document.getElementById('authEmail').value;
+      if (!email) {
+        alert('Por favor, digite o seu e-mail no campo acima e clique em "Esqueceu a senha?" novamente.');
+        return;
+      }
+      try {
+        if (!auth) throw new Error("Firebase Auth não inicializado");
+        await auth.sendPasswordResetEmail(email);
+        alert('Enviamos um e-mail de redefinição! Verifique a sua caixa de entrada (ou spam) para criar uma nova senha.');
+      } catch (err) {
+        if (err.code === 'auth/user-not-found') {
+          alert('Não encontrámos nenhuma conta registada com este e-mail.');
+        } else {
+          alert('Erro ao enviar e-mail de redefinição. Tente novamente mais tarde.');
+        }
+      }
     }
 
     async function handleAuthSubmit(e) {
@@ -868,26 +977,44 @@
         if (auth) {
           if (isRegisterMode) {
             const userCred = await auth.createUserWithEmailAndPassword(email, pass);
-            if (name) {
-              await userCred.user.updateProfile({ displayName: name });
-            }
+            const user = userCred.user;
+            if (name) await user.updateProfile({ displayName: name });
+            await user.sendEmailVerification();
+            alert('Conta criada com sucesso! Enviamos um link de confirmação para o seu e-mail. Verifique a sua caixa de entrada (ou spam).');
+            await auth.signOut();
+            toggleAuthMode();
+            return;
           } else {
-            await auth.signInWithEmailAndPassword(email, pass);
+            const userCred = await auth.signInWithEmailAndPassword(email, pass);
+            const user = userCred.user;
+            if (!user.emailVerified) {
+              await auth.signOut();
+              alert(`Acesso bloqueado. Ainda não confirmou o e-mail ${email}. Aceda à sua caixa de entrada e clique no link de verificação.`);
+              return;
+            }
+            currentUser = { email: user.email, displayName: user.displayName || name, uid: user.uid };
+            document.getElementById('authBtnLabel').innerText = currentUser.displayName.split(' ')[0];
+            showToast('Bem-vindo!', 'Login efetuado com sucesso.');
+            closeAuthModal();
+            return;
           }
-          currentUser = { email: email, displayName: name };
-          showToast(isRegisterMode ? 'Conta Criada!' : 'Bem-vindo!', 'Login efetuado com sucesso.');
-          closeAuthModal();
-          return;
         }
       } catch (err) {
-        console.warn('Firebase Auth fallback to Demo Session:', err.message);
+        let errorMsg = 'Erro ao processar. Tente novamente.';
+        if (err.code === 'auth/email-already-in-use') errorMsg = 'Este e-mail já está registado. Tente fazer login ou redefinir a senha.';
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') errorMsg = 'E-mail ou senha incorretos.';
+        if (err.code === 'auth/weak-password') errorMsg = 'A senha deve ter pelo menos 6 caracteres.';
+        alert(errorMsg);
+        return; 
       }
 
-      currentUser = { email: email, displayName: name, isDemo: true };
-      localStorage.setItem('malala_demo_user', JSON.stringify(currentUser));
-      document.getElementById('authBtnLabel').innerText = name;
-      showToast('Sessão Ativa (Demonstração)', `Bem-vindo(a), ${name}!`);
-      closeAuthModal();
+      if (!auth) {
+        currentUser = { email: email, displayName: name, isDemo: true };
+        localStorage.setItem('malala_demo_user', JSON.stringify(currentUser));
+        document.getElementById('authBtnLabel').innerText = name.split(' ')[0];
+        showToast('Sessão Ativa (Demonstração)', `Bem-vindo(a), ${name}!`);
+        closeAuthModal();
+      }
     }
 
     function openMercadoPagoCheckout() {
@@ -938,13 +1065,7 @@
       const city = document.getElementById('payCity').value;
       const cep = document.getElementById('payCep').value;
 
-      const shippingAddress = {
-        cep: cep,
-        street: street,
-        number: number,
-        neighborhood: neighborhood,
-        city: city
-      };
+      const shippingAddress = { cep, street, number, neighborhood, city };
 
       const payerData = {
         first_name: firstName,
@@ -982,6 +1103,7 @@
               document.getElementById('pixCopyPasteInput').value = data.qrCodeCopyPaste;
               document.getElementById('checkoutFormStep').classList.add('hidden');
               document.getElementById('pixResultStep').classList.remove('hidden');
+              
               cart = [];
               updateCart();
               showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
@@ -999,12 +1121,14 @@
           document.getElementById('checkoutFormStep').classList.add('hidden');
           document.getElementById('pixResultStep').classList.remove('hidden');
 
-          saveLocalDemoOrder(payerData, formattedItems, 'PIX');
+          // PIX é gerado como Pendente, o estoque SÓ BAIXA quando for Pago
+          saveLocalDemoOrder(payerData, formattedItems, 'PIX', 'Pendente');
           cart = [];
           updateCart();
           showToast('PIX de Teste Gerado!', 'Demonstração de checkout PIX ativa.');
 
         } else {
+          // CARTÃO DE CRÉDITO
           try {
             const res = await fetch(`${backendUrl}/api/payments/card`, {
               method: 'POST',
@@ -1021,6 +1145,7 @@
 
             if (data.success) {
               showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
+              decrementStock(formattedItems); // Baixa o estoque automaticamente
               cart = [];
               updateCart();
               closeCheckoutModal();
@@ -1030,6 +1155,7 @@
             console.warn('Backend offline/unreachable, falling back to Demo Card Checkout:', fetchErr);
           }
 
+          // Cartão de demonstração aprova e salva como Pago
           saveLocalDemoOrder(payerData, formattedItems, 'Cartão de Crédito', 'Pago');
           showToast('Pagamento Aprovado (Demonstração)!', 'Seu pedido foi aprovado em modo de teste.');
           cart = [];
@@ -1062,6 +1188,11 @@
         db.collection('orders').doc(newOrder.id).set({
           ...newOrder,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            // SE FOI PAGO, BAIXA O ESTOQUE AUTOMATICAMENTE AQUI
+            if (status === 'Pago') {
+                decrementStock(items);
+            }
         }).catch(err => console.warn('Firestore save order error:', err));
       }
     }
@@ -1081,10 +1212,16 @@
       initFirebaseSync();
     });
 
-    function showToast(title, message) {
+    function showToast(title, message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-400', iconBg = 'bg-emerald-500/20') {
       const toast = document.getElementById('toastNotification');
       document.getElementById('toastTitle').innerText = title;
       document.getElementById('toastMessage').innerText = message;
+      
+      const iconEl = document.getElementById('toastIcon');
+      const iconContainer = document.getElementById('toastIconContainer');
+      
+      iconEl.className = `fa-solid ${iconClass}`;
+      iconContainer.className = `p-1.5 rounded-lg text-lg ${iconColor} ${iconBg}`;
 
       toast.classList.remove('translate-x-full', 'opacity-0');
       toast.classList.add('translate-x-0', 'opacity-100');
@@ -1191,20 +1328,32 @@
         return;
       }
 
-      grid.innerHTML = list.map(p => `
-        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+      grid.innerHTML = list.map(p => {
+        const isOutOfStock = p.stock === 0;
+        const stockBadge = isOutOfStock 
+            ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-xs px-4 py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
+            : '';
+            
+        const btnClass = isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#FF5500] hover:bg-[#E64A00] text-white shadow-md shadow-[#FF5500]/20';
+
+        return `
+        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative">
+          ${stockBadge}
           <div>
             <div class="relative h-48 bg-gray-50 overflow-hidden cursor-pointer" onclick="openProductModal(${p.id})">
               <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-              <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow">
+              <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow z-20">
                 ${p.badge}
               </span>
-              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <i class="fa-solid fa-eye text-[#FF5500]"></i> Espiar
               </button>
             </div>
             <div class="p-4 cursor-pointer" onclick="openProductModal(${p.id})">
-              <span class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]">${p.category}</span>
+              <div class="flex justify-between items-center">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]">${p.category}</span>
+                  ${!isOutOfStock && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
+              </div>
               <h3 class="font-bold text-gray-900 text-sm mt-1 line-clamp-1 group-hover:text-[#FF5500] transition-colors">${p.title}</h3>
               <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.desc}</p>
             </div>
@@ -1214,17 +1363,21 @@
               <span class="text-[10px] text-gray-400 block uppercase">Preço</span>
               <span class="text-base font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 relative z-20">
               <button onclick="openProductModal(${p.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl transition-all shadow-sm" title="Ver Detalhes">
                 <i class="fa-solid fa-eye text-xs"></i>
               </button>
-              <button onclick="addToCart(${p.id})" class="bg-[#FF5500] hover:bg-[#E64A00] text-white p-2.5 rounded-xl transition-all shadow-md shadow-[#FF5500]/20" title="Adicionar ao Carrinho">
+              <button onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="${btnClass} p-2.5 rounded-xl transition-all" title="Adicionar ao Carrinho" ${isOutOfStock ? 'disabled' : ''}>
                 <i class="fa-solid fa-cart-plus text-xs"></i>
               </button>
             </div>
           </div>
         </div>
-      `).join('');
+      `}).join('');
+    }
+
+    function setModalImage(url) {
+        document.getElementById('modalProductImg').src = url;
     }
 
     function openProductModal(id) {
@@ -1237,6 +1390,40 @@
       document.getElementById('modalProductTitle').innerText = p.title;
       document.getElementById('modalProductDesc').innerText = p.desc;
       document.getElementById('modalProductPrice').innerText = `R$ ${p.price.toFixed(2).replace('.', ',')}`;
+
+      const stockEl = document.getElementById('modalProductStock');
+      const addBtn = document.getElementById('modalAddToCartBtn');
+      const buyBtn = document.getElementById('modalDirectBuyBtn');
+      
+      if (p.stock === 0) {
+          stockEl.innerText = "ESGOTADO";
+          stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-200";
+          addBtn.disabled = true;
+          addBtn.className = "flex-1 bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
+          buyBtn.disabled = true;
+          buyBtn.className = "bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
+      } else {
+          stockEl.innerText = `ESTOQUE: ${p.stock}`;
+          stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+          addBtn.disabled = false;
+          addBtn.className = "flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#FF5500]/20";
+          buyBtn.disabled = false;
+          buyBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20";
+      }
+
+      const thumbsContainer = document.getElementById('modalThumbnails');
+      if (p.images && p.images.length > 0) {
+          const allImages = [p.image, ...p.images];
+          thumbsContainer.innerHTML = allImages.map(imgUrl => `
+              <button onclick="setModalImage('${imgUrl}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white">
+                  <img src="${imgUrl}" class="w-full h-full object-cover">
+              </button>
+          `).join('');
+          thumbsContainer.classList.remove('hidden');
+      } else {
+          thumbsContainer.innerHTML = '';
+          thumbsContainer.classList.add('hidden');
+      }
 
       const installment = (p.price / 10).toFixed(2).replace('.', ',');
       document.getElementById('modalProductInstallments').innerText = `ou 10x de R$ ${installment} sem juros`;
@@ -1263,7 +1450,17 @@
     function addToCart(id) {
       const p = products.find(x => x.id === id);
       const ex = cart.find(x => x.id === id);
+      
+      if (p.stock === 0) {
+          showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
+          return;
+      }
+      
       if (ex) {
+        if (ex.qty >= p.stock) {
+            showToast('Estoque Limite', `Você já adicionou todo o estoque disponível (${p.stock}).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
+            return;
+        }
         ex.qty++;
       } else {
         cart.push({...p, qty: 1});
@@ -1274,8 +1471,17 @@
 
     function changeQty(id, delta) {
       const item = cart.find(x => x.id === id);
-      if (!item) return;
-      item.qty += delta;
+      const p = products.find(x => x.id === id);
+      if (!item || !p) return;
+      
+      const newQty = item.qty + delta;
+      
+      if (newQty > p.stock) {
+          showToast('Estoque Limite', `Apenas ${p.stock} unidade(s) disponível(is).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
+          return;
+      }
+      
+      item.qty = newQty;
       if (item.qty <= 0) {
         cart = cart.filter(x => x.id !== id);
       }
