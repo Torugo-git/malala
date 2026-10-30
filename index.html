@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO & OPEN GRAPH (PARTILHA NO WHATSAPP/INSTAGRAM) -->
   <title>MALALA STORE | Tecnologia • Beleza • Perfumes</title>
+  <meta name="description" content="Sua loja referência em Tecnologia, Produtos de Beleza e Perfumaria Importada e Árabe. Vai comprando & recebendo com entrega rápida e segura.">
+  <meta property="og:title" content="MALALA STORE | Produtos Exclusivos">
+  <meta property="og:description" content="Tecnologia, Beleza e Perfumaria Importada. Parcele em até 10x ou ganhe aprovação na hora no PIX.">
+  <meta property="og:image" content="https://seusite.com/logo-banner.png"> <!-- Trocaremos o URL quando tiver o domínio -->
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#FF5500">
 
   <!-- Firebase SDK (Compat version for vanilla HTML) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -18,16 +26,7 @@
 
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              orange: '#FF5500',
-              deepOrange: '#E64A00'
-            }
-          }
-        }
-      }
+      theme: { extend: { colors: { brand: { orange: '#FF5500', deepOrange: '#E64A00' } } } }
     }
   </script>
 
@@ -38,94 +37,20 @@
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #FF5500; border-radius: 3px; }
 
-    /* BANNER DA MARCA HORIZONTAL 100% LIMPO */
-    .hero-brand-banner {
-      width: 100%;
-      height: 320px;
-      background-image: url('logo-banner.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      border-bottom: 1px solid #e5e7eb;
-    }
+    .hero-brand-banner { width: 100%; height: 320px; background-image: url('logo-banner.png'); background-size: cover; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid #e5e7eb; }
+    @media (min-width: 768px) { .hero-brand-banner { height: 460px; } }
 
-    @media (min-width: 768px) {
-      .hero-brand-banner {
-        height: 460px;
-      }
-    }
+    .brands-carousel-container { overflow: hidden; width: 100%; position: relative; background-color: #fafafa; padding: 1.25rem 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; }
+    .brands-carousel-container::before, .brands-carousel-container::after { content: ""; position: absolute; top: 0; width: 80px; height: 100%; z-index: 2; pointer-events: none; }
+    .brands-carousel-container::before { left: 0; background: linear-gradient(to right, #fafafa 0%, transparent 100%); }
+    .brands-carousel-container::after { right: 0; background: linear-gradient(to left, #fafafa 0%, transparent 100%); }
+    .brands-carousel-track { display: flex; gap: 3rem; width: max-content; animation: scrollBrands 28s linear infinite; }
+    .brands-carousel-container:hover .brands-carousel-track { animation-play-state: paused; }
+    .brand-logo { display: flex; align-items: center; justify-content: center; min-width: 120px; height: 36px; opacity: 0.6; filter: grayscale(100%); transition: all 0.3s ease; cursor: pointer; }
+    .brand-logo:hover { opacity: 1; filter: grayscale(0%); transform: scale(1.05); }
+    .brand-logo span { font-weight: 800; font-size: 0.95rem; letter-spacing: 0.12em; text-transform: uppercase; color: #111827; }
 
-    /* CARROSSEL INFINITO DE MARCAS */
-    .brands-carousel-container {
-      overflow: hidden;
-      width: 100%;
-      position: relative;
-      background-color: #fafafa;
-      padding: 1.25rem 0;
-      border-top: 1px solid #e5e7eb;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .brands-carousel-container::before,
-    .brands-carousel-container::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      width: 80px;
-      height: 100%;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .brands-carousel-container::before {
-      left: 0;
-      background: linear-gradient(to right, #fafafa 0%, transparent 100%);
-    }
-    .brands-carousel-container::after {
-      right: 0;
-      background: linear-gradient(to left, #fafafa 0%, transparent 100%);
-    }
-
-    .brands-carousel-track {
-      display: flex;
-      gap: 3rem;
-      width: max-content;
-      animation: scrollBrands 28s linear infinite;
-    }
-
-    .brands-carousel-container:hover .brands-carousel-track {
-      animation-play-state: paused;
-    }
-
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 120px;
-      height: 36px;
-      opacity: 0.6;
-      filter: grayscale(100%);
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-
-    .brand-logo:hover {
-      opacity: 1;
-      filter: grayscale(0%);
-      transform: scale(1.05);
-    }
-
-    .brand-logo span {
-      font-weight: 800;
-      font-size: 0.95rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #111827;
-    }
-
-    @keyframes scrollBrands {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
+    @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   </style>
 </head>
 <body class="bg-white text-gray-900 font-sans antialiased selection:bg-[#FF5500] selection:text-white relative">
@@ -1130,7 +1055,6 @@
     async function handleCheckoutSubmit(e) {
       e.preventDefault();
 
-      // VALIDAÇÃO FORTE ANTES DE ENVIAR O PEDIDO
       const cpfValue = document.getElementById('payCpf').value;
       if (!isValidCPF(cpfValue)) {
           alert('Por favor, informe um CPF válido.');
@@ -1141,7 +1065,6 @@
       const firstName = document.getElementById('payFirstName').value;
       const lastName = document.getElementById('payLastName').value;
       const email = document.getElementById('payEmail').value;
-
       const street = document.getElementById('payStreet').value;
       const number = document.getElementById('payNumber').value;
       const neighborhood = document.getElementById('payNeighborhood').value;
@@ -1149,7 +1072,6 @@
       const cep = document.getElementById('payCep').value;
 
       const shippingAddress = { cep, street, number, neighborhood, city };
-
       const payerData = {
         first_name: firstName,
         last_name: lastName,
@@ -1158,16 +1080,14 @@
         address: shippingAddress
       };
 
-      const formattedItems = cart.map(i => ({
-        id: String(i.id),
-        title: i.title,
-        quantity: i.qty,
-        price: i.price
-      }));
+      const formattedItems = cart.map(i => ({ id: String(i.id), title: i.title, quantity: i.qty, price: i.price }));
 
+      // ESTADO DE LOADING NO BOTÃO (UX)
       const btn = document.getElementById('paySubmitBtn');
       btn.disabled = true;
-      btn.innerText = 'Processando...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando pagamento...';
+      btn.classList.replace('bg-emerald-600', 'bg-gray-400');
+      btn.classList.replace('hover:bg-emerald-500', 'hover:bg-gray-500');
 
       try {
        const backendUrl = 'https://malala-backend.onrender.com';
@@ -1179,6 +1099,14 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ items: formattedItems, payer: payerData })
             });
+            
+            // Verifica se o backend devolveu erro 409 (Sem Stock)
+            if (res.status === 409) {
+                const errorData = await res.json();
+                alert(`Ops! ${errorData.error}`);
+                throw new Error("Estoque insuficiente");
+            }
+            
             const data = await res.json();
 
             if (data.success && data.qrCodeBase64) {
@@ -1187,13 +1115,13 @@
               document.getElementById('checkoutFormStep').classList.add('hidden');
               document.getElementById('pixResultStep').classList.remove('hidden');
               
-              cart = [];
-              updateCart();
+              cart = []; updateCart();
               showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
               return;
             }
           } catch(fetchErr) {
             console.warn('Backend offline, gerando PIX de Teste:', fetchErr);
+            if(fetchErr.message === "Estoque insuficiente") throw fetchErr; // Aborta se for erro de stock
           }
 
           const dummyQrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020126580014BR.GOV.BCB.PIX0136malalastore-teste-pix-demonstracao520400005303986540510.005802BR5912MALALA_STORE6009RIO_DE_JANEIRO62070503***6304E2CA';
@@ -1205,8 +1133,7 @@
           document.getElementById('pixResultStep').classList.remove('hidden');
 
           saveLocalDemoOrder(payerData, formattedItems, 'PIX', 'Pendente');
-          cart = [];
-          updateCart();
+          cart = []; updateCart();
           showToast('PIX de Teste Gerado!', 'Demonstração ativa.');
 
         } else {
@@ -1222,30 +1149,40 @@
                 items: formattedItems
               })
             });
+            
+            // Verifica se o backend devolveu erro 409 (Sem Stock)
+            if (res.status === 409) {
+                const errorData = await res.json();
+                alert(`Ops! ${errorData.error}`);
+                throw new Error("Estoque insuficiente");
+            }
+            
             const data = await res.json();
 
             if (data.success) {
               showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
               decrementStock(formattedItems);
-              cart = [];
-              updateCart();
+              cart = []; updateCart();
               closeCheckoutModal();
               return;
             }
           } catch(fetchErr) {
             console.warn('Backend offline, gerando Pagamento de Teste:', fetchErr);
+            if(fetchErr.message === "Estoque insuficiente") throw fetchErr; // Aborta se for erro de stock
           }
 
           saveLocalDemoOrder(payerData, formattedItems, 'Cartão de Crédito', 'Pago');
           showToast('Pagamento Aprovado (Teste)!', 'Aprovado em modo demonstração.');
-          cart = [];
-          updateCart();
+          cart = []; updateCart();
           closeCheckoutModal();
         }
       } catch (err) {
         console.error('Checkout error:', err);
       } finally {
+        // RESTAURA O BOTÃO QUANDO TERMINA
         btn.disabled = false;
+        btn.classList.replace('bg-gray-400', 'bg-emerald-600');
+        btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
         togglePayMethodUI(selectedPayMethod);
       }
     }
