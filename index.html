@@ -747,7 +747,7 @@
   </div>
 
   <!-- SCRIPT -->
-  <script>
+ <script>
     // Agora o defaultProducts inclui stock e array de imagens
     const defaultProducts = [
       { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
@@ -795,7 +795,6 @@
       const stored = localStorage.getItem('malala_products');
       if (stored) {
         try {
-          // Garante a migração da estrutura local (stock e images)
           return JSON.parse(stored).map(p => ({
             ...p,
             stock: p.stock !== undefined ? p.stock : 10,
@@ -820,7 +819,6 @@
           }));
           localStorage.setItem('malala_products', JSON.stringify(products));
           renderProducts();
-          // Atualiza o carrinho caso um produto tenha ficado sem stock de repente
           verifyCartStock(); 
         }
       }, (err) => {
@@ -828,7 +826,6 @@
       });
     }
 
-    // --- FUNÇÃO PARA DECREMENTAR O ESTOQUE NO FIREBASE APÓS COMPRA PAGA ---
     async function decrementStock(purchasedItems) {
       if (!db) return;
       try {
@@ -851,14 +848,13 @@
               products: catProducts,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            console.log("Estoque do catálogo reduzido com sucesso no Firebase.");
+            console.log("Estoque reduzido com sucesso no Firebase.");
           }
         }
       } catch (e) {
         console.warn('Erro ao baixar estoque no catálogo:', e);
       }
     }
-    // ----------------------------------------------------------------------
 
     function verifyCartStock() {
       let changed = false;
@@ -962,26 +958,22 @@
         closeAuthModal();
       } catch (err) {
         console.error('Erro no Google Login:', err);
-        alert('Erro ao fazer login com Google: Certifique-se de que ativou o método "Google" no painel Authentication do Firebase.');
+        alert('Erro ao fazer login com Google. Verifique se o método de login está ativado no Firebase.');
       }
     }
 
     async function handlePasswordReset() {
       const email = document.getElementById('authEmail').value;
       if (!email) {
-        alert('Por favor, digite o seu e-mail no campo acima e clique em "Esqueceu a senha?" novamente.');
+        alert('Por favor, digite o seu e-mail no campo acima e clique em "Esqueceu a senha?".');
         return;
       }
       try {
         if (!auth) throw new Error("Firebase Auth não inicializado");
         await auth.sendPasswordResetEmail(email);
-        alert('Enviamos um e-mail de redefinição! Verifique a sua caixa de entrada (ou spam) para criar uma nova senha.');
+        alert('Enviamos um e-mail de redefinição! Verifique a sua caixa de entrada.');
       } catch (err) {
-        if (err.code === 'auth/user-not-found') {
-          alert('Não encontrámos nenhuma conta registada com este e-mail.');
-        } else {
-          alert('Erro ao enviar e-mail de redefinição. Tente novamente mais tarde.');
-        }
+        alert('Erro ao enviar e-mail de redefinição. Verifique se o e-mail está correto.');
       }
     }
 
@@ -998,7 +990,7 @@
             const user = userCred.user;
             if (name) await user.updateProfile({ displayName: name });
             await user.sendEmailVerification();
-            alert('Conta criada com sucesso! Enviamos um link de confirmação para o seu e-mail. Verifique a sua caixa de entrada (ou spam).');
+            alert('Conta criada com sucesso! Enviamos um link de confirmação para o seu e-mail.');
             await auth.signOut();
             toggleAuthMode();
             return;
@@ -1007,7 +999,7 @@
             const user = userCred.user;
             if (!user.emailVerified) {
               await auth.signOut();
-              alert(`Acesso bloqueado. Ainda não confirmou o e-mail ${email}. Aceda à sua caixa de entrada e clique no link de verificação.`);
+              alert(`Acesso bloqueado. Ainda não confirmou o e-mail ${email}.`);
               return;
             }
             currentUser = { email: user.email, displayName: user.displayName || name, uid: user.uid };
@@ -1018,22 +1010,87 @@
           }
         }
       } catch (err) {
-        let errorMsg = 'Erro ao processar. Tente novamente.';
-        if (err.code === 'auth/email-already-in-use') errorMsg = 'Este e-mail já está registado. Tente fazer login ou redefinir a senha.';
-        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') errorMsg = 'E-mail ou senha incorretos.';
-        if (err.code === 'auth/weak-password') errorMsg = 'A senha deve ter pelo menos 6 caracteres.';
-        alert(errorMsg);
+        alert('Erro ao fazer login ou registo. Verifique os seus dados.');
         return; 
       }
+    }
 
-      if (!auth) {
-        currentUser = { email: email, displayName: name, isDemo: true };
-        localStorage.setItem('malala_demo_user', JSON.stringify(currentUser));
-        document.getElementById('authBtnLabel').innerText = name.split(' ')[0];
-        showToast('Sessão Ativa (Demonstração)', `Bem-vindo(a), ${name}!`);
-        closeAuthModal();
+    // --- NOVA INTELIGÊNCIA: MÁSCARAS E VALIDAÇÃO ---
+
+    // 1. Aplicação de Máscaras em Tempo Real
+    document.addEventListener('input', function(e) {
+      // Máscara CEP
+      if (e.target.id === 'payCep') {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 5) val = val.substring(0,5) + '-' + val.substring(5,8);
+        e.target.value = val;
+
+        // Dispara a busca do endereço (ViaCEP) se tiver 8 dígitos
+        if (val.replace(/\D/g, '').length === 8) {
+          buscarEndereco(val.replace(/\D/g, ''));
+        }
+      }
+
+      // Máscara CPF
+      if (e.target.id === 'payCpf') {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 9) val = val.substring(0,3) + '.' + val.substring(3,6) + '.' + val.substring(6,9) + '-' + val.substring(9,11);
+        else if (val.length > 6) val = val.substring(0,3) + '.' + val.substring(3,6) + '.' + val.substring(6,9);
+        else if (val.length > 3) val = val.substring(0,3) + '.' + val.substring(3,6);
+        e.target.value = val;
+      }
+
+      // Máscara Cartão (exemplo simples: 4 blocos)
+      if (e.target.id === 'cardNumber') {
+          let val = e.target.value.replace(/\D/g, '').substring(0,16);
+          e.target.value = val.match(/.{1,4}/g)?.join(' ') || val;
+      }
+
+      // Máscara Validade Cartão
+      if (e.target.id === 'cardExpiry') {
+          let val = e.target.value.replace(/\D/g, '').substring(0,4);
+          if (val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
+          e.target.value = val;
+      }
+    });
+
+    // 2. Integração ViaCEP Automática
+    async function buscarEndereco(cepOriginal) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepOriginal}/json/`);
+        const data = await response.json();
+
+        if (!data.erro) {
+          document.getElementById('payStreet').value = data.logradouro || '';
+          document.getElementById('payNeighborhood').value = data.bairro || '';
+          document.getElementById('payCity').value = `${data.localidade} / ${data.uf}`;
+          document.getElementById('payNumber').focus(); // Foco no número para o cliente só preencher isso
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar CEP:', err);
       }
     }
+
+    // 3. Validação Matemática de CPF (Módulo 11)
+    function isValidCPF(cpf) {
+        cpf = cpf.replace(/[^\d]+/g, '');
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+
+        return true;
+    }
+    // --------------------------------------------------------
 
     function openMercadoPagoCheckout() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
@@ -1072,10 +1129,18 @@
 
     async function handleCheckoutSubmit(e) {
       e.preventDefault();
+
+      // VALIDAÇÃO FORTE ANTES DE ENVIAR O PEDIDO
+      const cpfValue = document.getElementById('payCpf').value;
+      if (!isValidCPF(cpfValue)) {
+          alert('Por favor, informe um CPF válido.');
+          document.getElementById('payCpf').focus();
+          return;
+      }
+
       const firstName = document.getElementById('payFirstName').value;
       const lastName = document.getElementById('payLastName').value;
       const email = document.getElementById('payEmail').value;
-      const cpf = document.getElementById('payCpf').value;
 
       const street = document.getElementById('payStreet').value;
       const number = document.getElementById('payNumber').value;
@@ -1089,7 +1154,7 @@
         first_name: firstName,
         last_name: lastName,
         email: email,
-        identification: { type: 'CPF', number: cpf.replace(/\D/g, '') },
+        identification: { type: 'CPF', number: cpfValue.replace(/\D/g, '') },
         address: shippingAddress
       };
 
@@ -1128,7 +1193,7 @@
               return;
             }
           } catch(fetchErr) {
-            console.warn('Backend offline/unreachable, falling back to Demo PIX:', fetchErr);
+            console.warn('Backend offline, gerando PIX de Teste:', fetchErr);
           }
 
           const dummyQrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020126580014BR.GOV.BCB.PIX0136malalastore-teste-pix-demonstracao520400005303986540510.005802BR5912MALALA_STORE6009RIO_DE_JANEIRO62070503***6304E2CA';
@@ -1139,14 +1204,12 @@
           document.getElementById('checkoutFormStep').classList.add('hidden');
           document.getElementById('pixResultStep').classList.remove('hidden');
 
-          // PIX é gerado como Pendente, o estoque SÓ BAIXA quando for Pago
           saveLocalDemoOrder(payerData, formattedItems, 'PIX', 'Pendente');
           cart = [];
           updateCart();
-          showToast('PIX de Teste Gerado!', 'Demonstração de checkout PIX ativa.');
+          showToast('PIX de Teste Gerado!', 'Demonstração ativa.');
 
         } else {
-          // CARTÃO DE CRÉDITO
           try {
             const res = await fetch(`${backendUrl}/api/payments/card`, {
               method: 'POST',
@@ -1163,19 +1226,18 @@
 
             if (data.success) {
               showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
-              decrementStock(formattedItems); // Baixa o estoque automaticamente
+              decrementStock(formattedItems);
               cart = [];
               updateCart();
               closeCheckoutModal();
               return;
             }
           } catch(fetchErr) {
-            console.warn('Backend offline/unreachable, falling back to Demo Card Checkout:', fetchErr);
+            console.warn('Backend offline, gerando Pagamento de Teste:', fetchErr);
           }
 
-          // Cartão de demonstração aprova e salva como Pago
           saveLocalDemoOrder(payerData, formattedItems, 'Cartão de Crédito', 'Pago');
-          showToast('Pagamento Aprovado (Demonstração)!', 'Seu pedido foi aprovado em modo de teste.');
+          showToast('Pagamento Aprovado (Teste)!', 'Aprovado em modo demonstração.');
           cart = [];
           updateCart();
           closeCheckoutModal();
@@ -1207,10 +1269,7 @@
           ...newOrder,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
-            // SE FOI PAGO, BAIXA O ESTOQUE AUTOMATICAMENTE AQUI
-            if (status === 'Pago') {
-                decrementStock(items);
-            }
+            if (status === 'Pago') decrementStock(items);
         }).catch(err => console.warn('Firestore save order error:', err));
       }
     }
@@ -1219,7 +1278,7 @@
       const input = document.getElementById('pixCopyPasteInput');
       input.select();
       document.execCommand('copy');
-      showToast('Copiado!', 'Código PIX Copia e Cola copiado para a área de transferência.');
+      showToast('Copiado!', 'Código PIX copiado.');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1234,16 +1293,12 @@
       const toast = document.getElementById('toastNotification');
       document.getElementById('toastTitle').innerText = title;
       document.getElementById('toastMessage').innerText = message;
-      
       const iconEl = document.getElementById('toastIcon');
       const iconContainer = document.getElementById('toastIconContainer');
-      
       iconEl.className = `fa-solid ${iconClass}`;
       iconContainer.className = `p-1.5 rounded-lg text-lg ${iconColor} ${iconBg}`;
-
       toast.classList.remove('translate-x-full', 'opacity-0');
       toast.classList.add('translate-x-0', 'opacity-100');
-
       setTimeout(() => {
         toast.classList.remove('translate-x-0', 'opacity-100');
         toast.classList.add('translate-x-full', 'opacity-0');
@@ -1253,10 +1308,7 @@
     function renderCategories() {
       const container = document.getElementById('categoriesContainer');
       container.innerHTML = categories.map(cat => `
-        <button
-          onclick="selectCategory('${cat.name}')"
-          class="flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${currentCategory === cat.name && !currentBrandFilter ? 'bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/25' : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'}"
-        >
+        <button onclick="selectCategory('${cat.name}')" class="flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${currentCategory === cat.name && !currentBrandFilter ? 'bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/25' : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-gray-200'}">
           <i class="fa-solid ${cat.icon} text-sm ${currentCategory === cat.name && !currentBrandFilter ? 'text-white' : 'text-[#FF5500]'}"></i>
           <span>${cat.name}</span>
         </button>
@@ -1268,9 +1320,7 @@
       currentBrandFilter = null;
       document.getElementById('categoryTitle').innerText = catName === 'Todos' ? 'Todas as Categorias' : catName;
       document.getElementById('searchInput').value = '';
-      if (document.getElementById('searchInputMobile')) {
-        document.getElementById('searchInputMobile').value = '';
-      }
+      if (document.getElementById('searchInputMobile')) document.getElementById('searchInputMobile').value = '';
       renderCategories();
       renderProducts();
     }
@@ -1284,24 +1334,15 @@
     }
 
     function syncAndFilterMobile() {
-      const val = document.getElementById('searchInputMobile').value;
-      document.getElementById('searchInput').value = val;
+      document.getElementById('searchInput').value = document.getElementById('searchInputMobile').value;
       filterProducts();
     }
 
     function filterProducts() {
       const q = document.getElementById('searchInput').value.toLowerCase();
-      if (!q.trim()) {
-        renderProducts();
-        return;
-      }
+      if (!q.trim()) { renderProducts(); return; }
       currentBrandFilter = null;
-      const filtered = products.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.desc.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.badge.toLowerCase().includes(q)
-      );
+      const filtered = products.filter(p => p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.badge.toLowerCase().includes(q));
       document.getElementById('categoryTitle').innerText = `Resultados para: "${q}"`;
       renderProducts(filtered);
     }
@@ -1309,11 +1350,8 @@
     function sortProducts() {
       const v = document.getElementById('sortSelect').value;
       let list;
-      if (currentBrandFilter) {
-        list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
-      } else {
-        list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
-      }
+      if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+      else list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
 
       if (v === 'price-low') list.sort((a,b) => a.price - b.price);
       if (v === 'price-high') list.sort((a,b) => b.price - a.price);
@@ -1322,14 +1360,10 @@
 
     function renderProducts(customList = null) {
       const grid = document.getElementById('productsGrid');
-      let list;
-
-      if (customList) {
-        list = customList;
-      } else if (currentBrandFilter) {
-        list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
-      } else {
-        list = currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory);
+      let list = customList;
+      if (!list) {
+          if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+          else list = currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory);
       }
 
       document.getElementById('productsCountText').innerText = `Exibindo ${list.length} produto(s)`;
@@ -1360,12 +1394,8 @@
           <div>
             <div class="relative h-48 bg-gray-50 overflow-hidden cursor-pointer" onclick="openProductModal(${p.id})">
               <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-              <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow z-20">
-                ${p.badge}
-              </span>
-              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <i class="fa-solid fa-eye text-[#FF5500]"></i> Espiar
-              </button>
+              <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow z-20">${p.badge}</span>
+              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"><i class="fa-solid fa-eye text-[#FF5500]"></i> Espiar</button>
             </div>
             <div class="p-4 cursor-pointer" onclick="openProductModal(${p.id})">
               <div class="flex justify-between items-center">
@@ -1382,21 +1412,15 @@
               <span class="text-base font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
             </div>
             <div class="flex items-center gap-1.5 relative z-20">
-              <button onclick="openProductModal(${p.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl transition-all shadow-sm" title="Ver Detalhes">
-                <i class="fa-solid fa-eye text-xs"></i>
-              </button>
-              <button onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="${btnClass} p-2.5 rounded-xl transition-all" title="Adicionar ao Carrinho" ${isOutOfStock ? 'disabled' : ''}>
-                <i class="fa-solid fa-cart-plus text-xs"></i>
-              </button>
+              <button onclick="openProductModal(${p.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl transition-all shadow-sm" title="Ver Detalhes"><i class="fa-solid fa-eye text-xs"></i></button>
+              <button onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="${btnClass} p-2.5 rounded-xl transition-all" title="Adicionar ao Carrinho" ${isOutOfStock ? 'disabled' : ''}><i class="fa-solid fa-cart-plus text-xs"></i></button>
             </div>
           </div>
         </div>
       `}).join('');
     }
 
-    function setModalImage(url) {
-        document.getElementById('modalProductImg').src = url;
-    }
+    function setModalImage(url) { document.getElementById('modalProductImg').src = url; }
 
     function openProductModal(id) {
       const p = products.find(x => x.id === id);
@@ -1416,93 +1440,53 @@
       if (p.stock === 0) {
           stockEl.innerText = "ESGOTADO";
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-200";
-          addBtn.disabled = true;
-          addBtn.className = "flex-1 bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
-          buyBtn.disabled = true;
-          buyBtn.className = "bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
+          addBtn.disabled = true; addBtn.className = "flex-1 bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
+          buyBtn.disabled = true; buyBtn.className = "bg-gray-300 text-gray-500 font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-not-allowed";
       } else {
           stockEl.innerText = `ESTOQUE: ${p.stock}`;
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
-          addBtn.disabled = false;
-          addBtn.className = "flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#FF5500]/20";
-          buyBtn.disabled = false;
-          buyBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20";
+          addBtn.disabled = false; addBtn.className = "flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#FF5500]/20";
+          buyBtn.disabled = false; buyBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-3 sm:px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20";
       }
 
       const thumbsContainer = document.getElementById('modalThumbnails');
       if (p.images && p.images.length > 0) {
           const allImages = [p.image, ...p.images];
-          thumbsContainer.innerHTML = allImages.map(imgUrl => `
-              <button onclick="setModalImage('${imgUrl}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white">
-                  <img src="${imgUrl}" class="w-full h-full object-cover">
-              </button>
-          `).join('');
+          thumbsContainer.innerHTML = allImages.map(imgUrl => `<button onclick="setModalImage('${imgUrl}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white"><img src="${imgUrl}" class="w-full h-full object-cover"></button>`).join('');
           thumbsContainer.classList.remove('hidden');
       } else {
           thumbsContainer.innerHTML = '';
           thumbsContainer.classList.add('hidden');
       }
 
-      const installment = (p.price / 10).toFixed(2).replace('.', ',');
-      document.getElementById('modalProductInstallments').innerText = `ou 10x de R$ ${installment} sem juros`;
-
-      document.getElementById('modalAddToCartBtn').onclick = () => {
-        addToCart(p.id);
-        closeProductModal();
-      };
-
-      document.getElementById('modalDirectBuyBtn').onclick = () => {
-        const msg = `*INTERESSE EM PRODUTO - MALALA STORE*\n\nOlá! Tenho interesse no produto:\n*${p.title}*\n*Preço:* R$ ${p.price.toFixed(2).replace('.', ',')}\n\nPode me dar mais informações sobre pronta entrega?`;
-        window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
-      };
+      document.getElementById('modalProductInstallments').innerText = `ou 10x de R$ ${(p.price / 10).toFixed(2).replace('.', ',')} sem juros`;
+      document.getElementById('modalAddToCartBtn').onclick = () => { addToCart(p.id); closeProductModal(); };
+      document.getElementById('modalDirectBuyBtn').onclick = () => { window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(`*INTERESSE EM PRODUTO - MALALA STORE*\n\nOlá! Tenho interesse no produto:\n*${p.title}*\n*Preço:* R$ ${p.price.toFixed(2).replace('.', ',')}\n\nPode me dar mais informações sobre pronta entrega?`)}`, '_blank'); };
 
       document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
     }
 
-    function closeProductModal() {
-      document.body.classList.remove('overflow-hidden');
-      document.getElementById('productModal').classList.add('hidden');
-    }
+    function closeProductModal() { document.body.classList.remove('overflow-hidden'); document.getElementById('productModal').classList.add('hidden'); }
 
     function addToCart(id) {
       const p = products.find(x => x.id === id);
       const ex = cart.find(x => x.id === id);
-      
-      if (p.stock === 0) {
-          showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
-          return;
-      }
-      
+      if (p.stock === 0) return showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
       if (ex) {
-        if (ex.qty >= p.stock) {
-            showToast('Estoque Limite', `Você já adicionou todo o estoque disponível (${p.stock}).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
-            return;
-        }
+        if (ex.qty >= p.stock) return showToast('Estoque Limite', `Você já adicionou todo o estoque disponível (${p.stock}).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
         ex.qty++;
-      } else {
-        cart.push({...p, qty: 1});
-      }
-      updateCart();
-      showToast('Produto Adicionado!', `${p.title} foi adicionado ao seu carrinho.`);
+      } else cart.push({...p, qty: 1});
+      updateCart(); showToast('Produto Adicionado!', `${p.title} foi adicionado ao seu carrinho.`);
     }
 
     function changeQty(id, delta) {
       const item = cart.find(x => x.id === id);
       const p = products.find(x => x.id === id);
       if (!item || !p) return;
-      
-      const newQty = item.qty + delta;
-      
-      if (newQty > p.stock) {
-          showToast('Estoque Limite', `Apenas ${p.stock} unidade(s) disponível(is).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
-          return;
-      }
-      
-      item.qty = newQty;
-      if (item.qty <= 0) {
-        cart = cart.filter(x => x.id !== id);
-      }
+      if (item.qty + delta > p.stock) return showToast('Estoque Limite', `Apenas ${p.stock} unidade(s) disponível(is).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
+      item.qty += delta;
+      if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
       updateCart();
     }
 
@@ -1510,50 +1494,26 @@
       document.getElementById('cartCount').innerText = cart.reduce((a,b) => a + b.qty, 0);
       const container = document.getElementById('cartItemsContainer');
       if (cart.length === 0) {
-        container.innerHTML = `
-          <div class="text-center text-gray-400 py-16">
-            <i class="fa-solid fa-bag-shopping text-4xl mb-3 text-gray-300"></i>
-            <p class="text-xs font-bold text-gray-600">Seu carrinho está vazio</p>
-            <p class="text-[10px] text-gray-400 mt-1">Explore nossas ofertas e adicione seus produtos favoritos!</p>
-          </div>
-        `;
+        container.innerHTML = `<div class="text-center text-gray-400 py-16"><i class="fa-solid fa-bag-shopping text-4xl mb-3 text-gray-300"></i><p class="text-xs font-bold text-gray-600">Seu carrinho está vazio</p><p class="text-[10px] text-gray-400 mt-1">Explore nossas ofertas e adicione seus produtos favoritos!</p></div>`;
       } else {
         container.innerHTML = cart.map(i => `
           <div class="bg-gray-50 p-3 rounded-xl flex items-center gap-3 border border-gray-200">
             <img src="${i.image}" class="w-14 h-14 object-cover rounded-lg bg-white border border-gray-200">
-            <div class="flex-1">
-              <h4 class="text-xs font-bold text-gray-900 line-clamp-1">${i.title}</h4>
-              <p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}</p>
-
-              <div class="flex items-center gap-2 mt-2">
-                <div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs">
-                  <button onclick="changeQty(${i.id}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button>
-                  <span class="px-2 py-0.5 font-bold text-gray-900">${i.qty}</span>
-                  <button onclick="changeQty(${i.id}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button>
-                </div>
-              </div>
-            </div>
-            <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors" title="Remover produto">
-              <i class="fa-solid fa-trash text-xs"></i>
-            </button>
+            <div class="flex-1"><h4 class="text-xs font-bold text-gray-900 line-clamp-1">${i.title}</h4><p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}</p><div class="flex items-center gap-2 mt-2"><div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs"><button onclick="changeQty(${i.id}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button><span class="px-2 py-0.5 font-bold text-gray-900">${i.qty}</span><button onclick="changeQty(${i.id}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button></div></div></div>
+            <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
         `).join('');
       }
-      const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
-      document.getElementById('cartTotal').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+      document.getElementById('cartTotal').innerText = `R$ ${cart.reduce((a,b) => a + (b.price * b.qty), 0).toFixed(2).replace('.', ',')}`;
     }
 
-    function toggleCart(force = false) {
-      const m = document.getElementById('cartModal');
-      if (force) m.classList.remove('hidden'); else m.classList.toggle('hidden');
-    }
+    function toggleCart(force = false) { const m = document.getElementById('cartModal'); if (force) m.classList.remove('hidden'); else m.classList.toggle('hidden'); }
 
     function checkoutWhatsApp() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
       let msg = '*NOVO PEDIDO - MALALA STORE*\n\n';
       cart.forEach(i => msg += `• ${i.qty}x ${i.title} - R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}\n`);
-      const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
-      msg += `\n*Total do Pedido:* R$ ${total.toFixed(2).replace('.', ',')}\n\nPodemos fechar o pedido?`;
+      msg += `\n*Total do Pedido:* R$ ${cart.reduce((a,b) => a + (b.price * b.qty), 0).toFixed(2).replace('.', ',')}\n\nPodemos fechar o pedido?`;
       window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
     }
   </script>

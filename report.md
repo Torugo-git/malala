@@ -1,22 +1,25 @@
-# Relatório de Auditoria e Revisão - Malala Store (Revisão v2)
+# Relatório de Auditoria e Revisão - Malala Store (Revisão v3 - FINAL)
 
-Após a última atualização, foi feita uma nova auditoria para verificar a resolução dos itens de Alta Prioridade apontados no relatório anterior.
+Realizei a auditoria final após o seu último push e trago ótimas notícias!
 
-## O que FOI RESOLVIDO (Excelente trabalho!):
-- ✅ **Blindagem Legal (Políticas e Termos):** A página `termos.html` foi criada contendo Termos de Uso, Política de Privacidade (LGPD), Trocas e Prazos de Envio. Os links foram devidamente adicionados.
-- ✅ **Checkbox de Aceite no Checkout:** O checkbox `payTerms` foi adicionado no modal de checkout obrigando o aceite das políticas e termos.
-- ✅ **Rodapé Legal:** O CNPJ (`68.931.318/0001-20`) e a Razão Social (`MALALA STORE LTDA`) foram incluídos no rodapé do `index.html`.
+## 1. Status das Correções de Alta Prioridade (100% Resolvido)
+Todos os pontos críticos de segurança, blindagem legal e validação técnica exigidos para a operação do e-commerce foram solucionados.
 
-## O que AINDA NÃO FOI RESOLVIDO (Falta implementar):
-- ❌ **Regras de Segurança do Firebase (Firestore Rules):** O repositório ainda não contém um arquivo `firestore.rules` (ou `firebase.json`). Lembre-se que essa configuração muitas vezes é feita diretamente no Console do Firebase (na aba Firestore Database > Rules). Se você já fez isso lá, excelente! Mas se não, a base de dados ainda está vulnerável.
-- ❌ **Validações Fortes no Frontend:** Embora os campos `payCpf` e `payCep` existam com a propriedade `required`, ainda não há validação via JavaScript. Um usuário pode digitar `123` no CPF e o sistema aceitará. Faltam funções de máscara e validação de Módulo 11 para o CPF.
-- ❌ **Validação Dupla de Estoque:** O backend (`server/server.js`) ainda não faz a verificação do estoque atual no Firestore *antes* de enviar a cobrança para o Mercado Pago. A checagem continua sendo feita apenas no lado do cliente (`index.html`).
+- ✅ **Blindagem Legal (Políticas e Termos):** A página `termos.html` foi criada e está linkada no rodapé e no modal de checkout.
+- ✅ **Checkbox de Aceite no Checkout:** O usuário agora é forçado a confirmar o aceite dos termos antes de prosseguir com qualquer pagamento.
+- ✅ **Rodapé Legal:** O CNPJ (`68.931.318/0001-20`) e Razão Social foram adicionados, transmitindo mais segurança para a loja.
+- ✅ **Regras de Segurança do Firebase (`firestore.rules`):** O arquivo foi adicionado com sucesso e implementa as funções `isAdmin()`, garantindo que os usuários comuns só possam ler suas próprias encomendas e apenas você (o administrador) tenha acesso de gravação irrestrita.
+- ✅ **Validações Fortes no Frontend:** A função matemática de Módulo 11 (`isValidCPF`) e a formatação (máscara) do CPF foram adicionadas no `index.html`. Agora o sistema impede um checkout de seguir adiante com um CPF inválido.
+- ✅ **Validação Dupla de Estoque (Backend):** O `server.js` (agora na raiz e não em `/server`, atenção para a estrutura de pastas) possui a inteligência de segurança dupla com a função `validateStockBeforeCheckout`. Ele trava preventivamente uma venda antes de acionar a API do Mercado Pago se o estoque no catálogo não for suficiente.
 
 ---
 
-### Próximos Passos (Recomendação):
-Se quiser, eu (Jules) posso escrever o código para:
-1. **Adicionar máscaras e validação real de CPF/CEP** no arquivo `index.html`.
-2. **Adicionar a trava de estoque** no arquivo `server/server.js` para garantir que ninguém compre um produto que acabou de esgotar.
+## 2. Próximos Passos (Itens de Média e Baixa Prioridade)
+Com os requisitos de lançamento supridos, a loja já estaria "Pronta para Vender" do ponto de vista de software de forma robusta e segura.
 
-Como você prefere seguir?
+No seu próprio tempo, você pode agora olhar para os itens de **Média Prioridade** apontados na primeira auditoria:
+1. Adicionar filtros de pedidos na página de administração (por Data, Status de Pagamento).
+2. Adicionar um resumo/dashboard de Faturamento na página de administração.
+3. Permitir edição de estoque "inline" (direto na linha da tabela de produtos sem precisar abrir o modal).
+
+Parabéns pelas correções, o sistema agora está com o fluxo sólido e blindado!

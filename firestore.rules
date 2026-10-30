@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função que define quem é o dono (Admin)
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'victorhugopenny@gmail.com';
+    }
+
+    // Regras do Catálogo
+    match /malala_store/catalog {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Regras das Encomendas
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read: if isAdmin() || (request.auth != null && resource.data.payer.email == request.auth.token.email);
+      allow update, delete: if isAdmin();
+    }
+  }
+}
