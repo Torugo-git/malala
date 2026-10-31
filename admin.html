@@ -335,6 +335,16 @@
         return;
       }
 
+      // Garante que o Firebase Auth está pronto antes de consultar
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser && sessionStorage.getItem('malala_logged') === 'true') {
+        try {
+          await firebase.auth().signInWithEmailAndPassword('malalastore.pedidos@gmail.com', document.getElementById('adminPassword')?.value || '');
+        } catch(err) {
+          console.warn("Autenticação automática de suporte:", err);
+        }
+      }
+
       if (!isLoadMore) {
         container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
         lastOrderDoc = null;
