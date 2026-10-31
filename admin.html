@@ -7,6 +7,7 @@
 
   <!-- Firebase SDK (Compat version) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- Tailwind CSS CDN -->
@@ -30,12 +31,12 @@
     <div class="bg-white max-w-md w-full rounded-3xl p-8 shadow-2xl border border-gray-100 text-center relative">
       <img src="logo-circle.png" alt="Malala Store" class="w-16 h-16 rounded-full mx-auto mb-4 border-2 border-[#FF5500] shadow-md">
       <h2 class="text-2xl font-black text-gray-900">Painel do Lojista</h2>
-      <p class="text-xs text-gray-500 mt-1 mb-6">Digite a senha de acesso para gerenciar o catálogo.</p>
+      <p class="text-xs text-gray-500 mt-1 mb-6">Digite a senha da conta da loja para gerenciar o sistema.</p>
 
       <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <input type="password" id="adminPassword" placeholder="Senha de Acesso" class="w-full bg-gray-50 border border-gray-200 text-sm text-center font-bold py-3 px-4 rounded-xl focus:outline-none focus:border-[#FF5500] transition-all" required>
-          <p id="loginError" class="text-xs text-red-500 font-bold mt-2 hidden">Senha incorreta! Tente novamente.</p>
+          <input type="password" id="adminPassword" placeholder="Senha do Firebase Auth" class="w-full bg-gray-50 border border-gray-200 text-sm text-center font-bold py-3 px-4 rounded-xl focus:outline-none focus:border-[#FF5500] transition-all" required>
+          <p id="loginError" class="text-xs text-red-500 font-bold mt-2 hidden">Senha incorreta ou acesso negado!</p>
         </div>
         <button type="submit" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-[#FF5500]/25 flex items-center justify-center gap-2">
           <i class="fa-solid fa-lock-open"></i> Entrar no Gerenciador
@@ -256,11 +257,23 @@
     let ordersList = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      if (sessionStorage.getItem('malala_logged') === 'true') {
-        document.getElementById('loginModal').classList.add('hidden');
-      }
       initFirebase();
       loadAdminProducts();
+      
+      // Verifica se já está autenticado na sessão do Firebase Auth
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user && user.email === 'malalastore.pedidos@gmail.com') {
+          sessionStorage.setItem('malala_logged', 'true');
+          document.getElementById('loginModal').classList.add('hidden');
+          loadOrdersFromCloud();
+        } else {
+          if (sessionStorage.getItem('malala_logged') === 'true') {
+            // Se perdeu a sessão do Auth mas tem flag, limpa para forçar login correto
+            sessionStorage.removeItem('malala_logged');
+          }
+          document.getElementById('loginModal').classList.remove('hidden');
+        }
+      });
     });
 
     function initFirebase() {
@@ -271,8 +284,6 @@
       } catch(e) {
         console.error("Erro ao iniciar Firebase:", e);
       }
-      // Força o carregamento inicial dos pedidos diretamente da nuvem
-      loadOrdersFromCloud();
     }
 
     function initFirebaseAdminSync() {
@@ -286,7 +297,33 @@
       });
     }
 
-    // NOVA FUNÇÃO: Botão Atualizar puxa diretamente do Firebase com força total
+    // Função de Login Real via Firebase Auth respeitando as regras do Firestore
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('adminPassword').value;
+      const adminEmail = 'malalastore.pedidos@gmail.com';
+
+      try {
+        await firebase.auth().signInWithEmailAndPassword(adminEmail, pwd);
+        sessionStorage.setItem('malala_logged', 'true');
+        document.getElementById('loginModal').classList.add('hidden');
+        document.getElementById('loginError').classList.add('hidden');
+        loadOrdersFromCloud();
+      } catch (err) {
+        console.error("❌ Erro de autenticação:", err);
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    }
+
+    async function logout() {
+      try {
+        await firebase.auth().signOut();
+      } catch(e){}
+      sessionStorage.removeItem('malala_logged');
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    // Puxa diretamente os pedidos da nuvem com total autorização do Firebase Auth
     async function loadOrdersFromCloud() {
       const container = document.getElementById('adminOrdersContainer');
       if (!db) {
@@ -313,7 +350,6 @@
 
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
-        console.log("✅ Pedidos sincronizados com sucesso do Firebase:", ordersList.length);
       } catch (err) {
         console.error("❌ Erro ao buscar pedidos do Firebase:", err);
         try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
@@ -321,37 +357,8 @@
       }
     }
 
-    // Mantém a compatibilidade caso outras partes chamem loadOrders
     function loadOrders() {
       loadOrdersFromCloud();
-    }
-
-    function handleLogin(e) {
-      e.preventDefault();
-      const pwd = document.getElementById('adminPassword').value;
-      if (pwd === 'malala123') {
-        sessionStorage.setItem('malala_logged', 'true');
-        document.getElementById('loginModal').classList.add('hidden');
-        loadOrders();
-      } else {
-        document.getElementById('loginError').classList.remove('hidden');
-      }
-    }
-
-    function logout() {
-      sessionStorage.removeItem('malala_logged');
-      document.getElementById('loginModal').classList.remove('hidden');
-    }
-
-    function initFirebaseAdminSync() {
-      if (!db) return;
-      db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
-        if (doc.exists && doc.data().products) {
-          adminProducts = doc.data().products.map(p => ({...p, stock: p.stock !== undefined ? p.stock : 10, images: p.images || []}));
-          localStorage.setItem('malala_products', JSON.stringify(adminProducts));
-          renderAdminTable();
-        }
-      });
     }
 
     function switchTab(tab) {
@@ -363,34 +370,6 @@
       
       document.getElementById('tabProductsBtn').className = tab === 'products' ? btnActive : btnInactive;
       document.getElementById('tabOrdersBtn').className = tab === 'orders' ? btnActive : btnInactive;
-    }
-
-    function loadOrders() {
-      if (!db) {
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
-        return;
-      }
-      if (ordersUnsubscribe) ordersUnsubscribe();
-      
-      // Consulta robusta que funciona com qualquer ID do Firestore
-      ordersUnsubscribe = db.collection('orders').onSnapshot(snap => {
-        ordersList = [];
-        snap.forEach(doc => ordersList.push({ id: doc.id, ...doc.data() }));
-        
-        // Ordena por data decrescente de forma segura no cliente
-        ordersList.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
-        });
-
-        localStorage.setItem('malala_orders', JSON.stringify(ordersList));
-        renderOrdersTable();
-      }, err => {
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
-      });
     }
 
     function calculateDashboard(filteredOrders) {
