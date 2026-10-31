@@ -295,6 +295,38 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
           });
           console.log(`✅ [WEBHOOK] Pedido ${orderId} aprovado e stock reduzido!`);
 
+          // Enviar email de confirmação via EmailJS
+          try {
+            const payerEmail = orderData.payer.email;
+            const orderSummaryText = orderData.items.map(i => `${i.quantity || i.qty}x ${i.title}`).join(', ');
+
+            const emailjsPayload = {
+              service_id: 'service_fvb6yhg',
+              template_id: 'template_n10dl83',
+              user_id: 'vI8slPfRAcF3rOg0P',
+              template_params: {
+                email: payerEmail,
+                order_id: orderId,
+                order_summary: orderSummaryText
+              }
+            };
+
+            const emailjsRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(emailjsPayload)
+            });
+
+            if (emailjsRes.ok) {
+              console.log(`✉️ [EMAIL] Confirmação enviada para ${payerEmail}`);
+            } else {
+              const errText = await emailjsRes.text();
+              console.error(`❌ [EMAIL] Falha ao enviar para ${payerEmail}:`, errText);
+            }
+          } catch (emailErr) {
+            console.error('❌ Erro na chamada ao EmailJS:', emailErr);
+          }
+
         } else if (status === 'cancelled' || status === 'rejected') {
            await orderRef.update({
             status: 'Cancelado',

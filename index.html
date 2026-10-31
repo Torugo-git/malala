@@ -13,14 +13,6 @@
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#FF5500">
 
-  <!-- EmailJS SDK -->
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <script type="text/javascript">
-    (function() {
-      emailjs.init("vI8slPfRAcF3rOg0P");
-    })();
-  </script>
-
   <!-- Firebase SDK (Compat version for vanilla HTML) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -651,23 +643,6 @@
 
   <!-- SCRIPT -->
   <script>
-    function enviarEmailConfirmacaoEmailJS(payerEmail, orderId, items) {
-      const orderSummaryText = items.map(i => `${i.quantity || i.qty}x ${i.title}`).join(', ');
-      
-      const templateParams = {
-        email: payerEmail,
-        order_id: orderId,
-        order_summary: orderSummaryText
-      };
-
-      emailjs.send('service_fvb6yhg', 'template_n10dl83', templateParams)
-        .then(function(response) {
-           console.log('✅ E-mail enviado com sucesso via EmailJS!', response.status, response.text);
-        }, function(error) {
-           console.error('❌ Erro ao enviar e-mail via EmailJS:', error);
-        });
-    }
-
     const defaultProducts = [
       { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
       { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
@@ -1059,7 +1034,6 @@
               document.getElementById('checkoutFormStep').classList.add('hidden');
               document.getElementById('pixResultStep').classList.remove('hidden');
               
-              enviarEmailConfirmacaoEmailJS(payerData.email, data.orderId || ('ORD-' + Math.floor(100000 + Math.random() * 900000)), formattedItems);
               cart = []; updateCart();
               showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
               return;
