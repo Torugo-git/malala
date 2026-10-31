@@ -996,8 +996,20 @@
 
       // Detecção de Cartão, Bandeira e Validação Luhn em tempo real com trava anti-zeros
       if (e.target.id === 'cardNumber') {
-          let val = e.target.value.replace(/\D/g, '').substring(0,16);
-          e.target.value = val.match(/.{1,4}/g)?.join(' ') || val;
+          let rawVal = e.target.value.replace(/\D/g, '');
+          let isAmex = rawVal.startsWith('34') || rawVal.startsWith('37');
+          let maxLength = isAmex ? 15 : 16;
+          let val = rawVal.substring(0, maxLength);
+
+          if (isAmex) {
+              let parts = [];
+              if (val.length > 0) parts.push(val.substring(0, 4));
+              if (val.length > 4) parts.push(val.substring(4, 10));
+              if (val.length > 10) parts.push(val.substring(10, 15));
+              e.target.value = parts.join(' ');
+          } else {
+              e.target.value = val.match(/.{1,4}/g)?.join(' ') || val;
+          }
 
           const brandIcon = document.getElementById('cardBrandIcon');
           const errorMsg = document.getElementById('cardErrorMsg');
@@ -1007,13 +1019,13 @@
               brandIcon.innerHTML = '<i class="fa-brands fa-cc-visa text-blue-600 text-lg"></i>';
           } else if (/^5[1-5]/.test(val) || /^2[2-7]/.test(val)) {
               brandIcon.innerHTML = '<i class="fa-brands fa-cc-mastercard text-orange-600 text-lg"></i>';
-          } else if (val.startsWith('34') || val.startsWith('37')) {
+          } else if (isAmex) {
               brandIcon.innerHTML = '<i class="fa-brands fa-cc-amex text-blue-400 text-lg"></i>';
           } else {
               brandIcon.innerHTML = '<i class="fa-regular fa-credit-card"></i>';
           }
 
-          if (val.length >= 13) {
+          if (val.length === maxLength) {
               if (!isValidLuhn(val)) {
                   errorMsg.classList.remove('hidden');
                   inputField.classList.add('border-red-500', 'bg-red-50');
@@ -1052,7 +1064,7 @@
 
     function isValidCPF(cpf) {
         cpf = cpf.replace(/[^\d]+/g, '');
-        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf) || /^0+$/.test(cpf)) return false;
         
         let soma = 0, resto;
         for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
@@ -1073,14 +1085,27 @@
         let cleanCard = (cardNumber + '').replace(/\D/g, '');
 
         // Trava rigorosa: rejeita se for menor que 13 dígitos ou se forem todos números iguais (ex: 0000...)
-        if (cleanCard.length < 13 || /^(\d)\1+$/.test(cleanCard)) {
+        if (cleanCard.length < 13 || /^(\d)\1+$/.test(cleanCard) || /^0+$/.test(cleanCard)) {
             return false;
         }
 
-        let arr = cleanCard.split('').reverse().map(x => parseInt(x, 10));
-        let lastDigit = arr.shift();
-        let sum = arr.reduce((acc, val, i) => (i % 2 !== 0 ? acc + val : acc + ((val * 2 > 9) ? (val * 2) - 9 : (val * 2))), 0);
-        sum += lastDigit;
+        let sum = 0;
+        let isSecond = false;
+
+        for (let i = cleanCard.length - 1; i >= 0; i--) {
+            let digit = parseInt(cleanCard.charAt(i), 10);
+
+            if (isSecond) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+
+            sum += digit;
+            isSecond = !isSecond;
+        }
+
         return sum % 10 === 0;
     }
 
@@ -1103,8 +1128,15 @@
       const selectInstallments = document.getElementById('cardInstallments');
       let installmentsHtml = '';
       for (let i = 1; i <= 10; i++) {
-          let installmentValue = total / i;
-          installmentsHtml += `<option value="${i}">${i}x de R$ ${installmentValue.toFixed(2).replace('.', ',')} sem juros</option>`;
+          let baseInstallmentValue = Math.floor((total / i) * 100) / 100;
+          let remainder = Math.round((total - (baseInstallmentValue * i)) * 100) / 100;
+
+          if (remainder > 0 && i > 1) {
+              let firstInstallment = baseInstallmentValue + remainder;
+              installmentsHtml += `<option value="${i}">${i}x sem juros (1x R$ ${firstInstallment.toFixed(2).replace('.', ',')} + ${i-1}x R$ ${baseInstallmentValue.toFixed(2).replace('.', ',')})</option>`;
+          } else {
+              installmentsHtml += `<option value="${i}">${i}x de R$ ${baseInstallmentValue.toFixed(2).replace('.', ',')} sem juros</option>`;
+          }
       }
       selectInstallments.innerHTML = installmentsHtml;
 
@@ -1189,14 +1221,18 @@
 
       try {
        const backendUrl = 'https://malala-backend-1.onrender.com';
+       const controller = new AbortController();
+       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
         if (selectedPayMethod === 'pix') {
           try {
             const res = await fetch(`${backendUrl}/api/payments/pix`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: formattedItems, payer: payerData })
+              body: JSON.stringify({ items: formattedItems, payer: payerData }),
+              signal: controller.signal
             });
+            clearTimeout(timeoutId);
             
             if (res.status === 409) {
                 const errorData = await res.json();
@@ -1218,6 +1254,19 @@
               return;
             }
           } catch(fetchErr) {
+            clearTimeout(timeoutId);
+            if (fetchErr.name === 'AbortError') {
+              btn.disabled = false;
+              if (selectedPayMethod === 'pix') {
+                btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
+              } else {
+                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+              }
+              btn.classList.replace('bg-gray-400', 'bg-emerald-600');
+              btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
+              alert('O servidor demorou muito para responder. Por favor, tente novamente.');
+              throw new Error("Timeout na comunicação com o servidor.");
+            }
             console.warn('Backend offline, gerando PIX de Teste:', fetchErr);
             if(fetchErr.message === "Estoque insuficiente") throw fetchErr;
           }
@@ -1247,8 +1296,10 @@
                 installments: parseInt(document.getElementById('cardInstallments').value || 1),
                 payer: payerData,
                 items: formattedItems
-              })
+              }),
+              signal: controller.signal
             });
+            clearTimeout(timeoutId);
             
             if (res.status === 409) {
                 const errorData = await res.json();
@@ -1267,6 +1318,19 @@
               return;
             }
           } catch(fetchErr) {
+            clearTimeout(timeoutId);
+            if (fetchErr.name === 'AbortError') {
+              btn.disabled = false;
+              if (selectedPayMethod === 'pix') {
+                btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
+              } else {
+                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+              }
+              btn.classList.replace('bg-gray-400', 'bg-emerald-600');
+              btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
+              alert('O servidor demorou muito para responder. Por favor, tente novamente.');
+              throw new Error("Timeout na comunicação com o servidor.");
+            }
             console.warn('Backend offline, gerando Pagamento de Teste:', fetchErr);
             if(fetchErr.message === "Estoque insuficiente") throw fetchErr;
           }
