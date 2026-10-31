@@ -1265,6 +1265,7 @@
 
             const cardTokenData = {
               cardNumber: cardNumberValue,
+              bin: cardBin, // BIN passado explicitamente conforme solicitado para a geração do token
               cardholderName: document.getElementById('cardHolderName').value.trim(),
               cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
               cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
