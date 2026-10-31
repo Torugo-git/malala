@@ -254,7 +254,6 @@
     let adminProducts = [];
     let db = null;
     let ordersList = [];
-    let ordersUnsubscribe = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       if (sessionStorage.getItem('malala_logged') === 'true') {
@@ -269,8 +268,62 @@
         if (!firebase.apps.length) firebase.initializeApp(defaultFirebaseConfig);
         db = firebase.firestore();
         initFirebaseAdminSync();
-      } catch(e) {}
-      loadOrders();
+      } catch(e) {
+        console.error("Erro ao iniciar Firebase:", e);
+      }
+      // Força o carregamento inicial dos pedidos diretamente da nuvem
+      loadOrdersFromCloud();
+    }
+
+    function initFirebaseAdminSync() {
+      if (!db) return;
+      db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
+        if (doc.exists && doc.data().products) {
+          adminProducts = doc.data().products.map(p => ({...p, stock: p.stock !== undefined ? p.stock : 10, images: p.images || []}));
+          localStorage.setItem('malala_products', JSON.stringify(adminProducts));
+          renderAdminTable();
+        }
+      });
+    }
+
+    // NOVA FUNÇÃO: Botão Atualizar puxa diretamente do Firebase com força total
+    async function loadOrdersFromCloud() {
+      const container = document.getElementById('adminOrdersContainer');
+      if (!db) {
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
+        return;
+      }
+
+      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+
+      try {
+        const snapshot = await db.collection('orders').get();
+        ordersList = [];
+        snapshot.forEach(doc => {
+          ordersList.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Ordena por data decrescente de forma segura
+        ordersList.sort((a, b) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tB - tA;
+        });
+
+        localStorage.setItem('malala_orders', JSON.stringify(ordersList));
+        renderOrdersTable();
+        console.log("✅ Pedidos sincronizados com sucesso do Firebase:", ordersList.length);
+      } catch (err) {
+        console.error("❌ Erro ao buscar pedidos do Firebase:", err);
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
+      }
+    }
+
+    // Mantém a compatibilidade caso outras partes chamem loadOrders
+    function loadOrders() {
+      loadOrdersFromCloud();
     }
 
     function handleLogin(e) {
