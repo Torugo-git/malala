@@ -255,6 +255,10 @@
     let adminProducts = [];
     let db = null;
     let ordersList = [];
+    
+    let lastOrderDoc = null;
+    const ORDERS_PER_PAGE = 10;
+    let hasMoreOrders = true;
 
     document.addEventListener('DOMContentLoaded', () => {
       initFirebase();
@@ -316,35 +320,57 @@
       document.getElementById('loginModal').classList.remove('hidden');
     }
 
-    async function loadOrdersFromCloud() {
+    async function loadOrdersFromCloud(isLoadMore = false) {
       const container = document.getElementById('adminOrdersContainer');
+      
       if (!db) {
         try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
         renderOrdersTable();
         return;
       }
 
-      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+      if (!isLoadMore) {
+        container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+        lastOrderDoc = null;
+        ordersList = [];
+        hasMoreOrders = true;
+      } else {
+        const btn = document.getElementById('loadMoreOrdersBtn');
+        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando...`;
+      }
 
       try {
-        const snapshot = await db.collection('orders').get();
-        ordersList = [];
-        snapshot.forEach(doc => {
-          ordersList.push({ id: doc.id, ...doc.data() });
-        });
+        let query = db.collection('orders').orderBy('createdAt', 'desc').limit(ORDERS_PER_PAGE);
+        
+        if (isLoadMore && lastOrderDoc) {
+          query = query.startAfter(lastOrderDoc);
+        }
 
-        ordersList.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
+        const snapshot = await query.get();
+        
+        if (snapshot.empty) {
+          hasMoreOrders = false;
+          renderOrdersTable();
+          return;
+        }
+
+        lastOrderDoc = snapshot.docs[snapshot.docs.length - 1];
+        hasMoreOrders = snapshot.docs.length === ORDERS_PER_PAGE;
+
+        snapshot.forEach(doc => {
+          if (!ordersList.some(o => o.id === doc.id)) {
+            ordersList.push({ id: doc.id, ...doc.data() });
+          }
         });
 
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
       } catch (err) {
         console.error("❌ Erro ao buscar pedidos do Firebase:", err);
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
+        if (!isLoadMore) {
+          try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+          renderOrdersTable();
+        }
       }
     }
 
@@ -443,7 +469,7 @@
         return;
       }
 
-      container.innerHTML = filtered.map(ord => {
+      let html = filtered.map(ord => {
         const payer = ord.payer || {};
         const payStatus = ord.status || 'Pendente';
         const delStatus = ord.deliveryStatus || 'Recebido';
@@ -502,6 +528,15 @@
           </div>
         `;
       }).join('');
+      
+      if (hasMoreOrders && filterDate === 'all' && filterPay === 'all' && filterDel === 'all') {
+         html += `<div class="flex justify-center mt-4 pt-4 border-t border-gray-200">
+                    <button id="loadMoreOrdersBtn" onclick="loadOrdersFromCloud(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center">
+                       <i class="fa-solid fa-plus text-[#FF5500] mr-2"></i> Carregar Mais Pedidos
+                    </button>
+                  </div>`;
+      }
+      container.innerHTML = html;
     }
 
     function loadAdminProducts() {
