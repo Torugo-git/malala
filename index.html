@@ -1267,32 +1267,36 @@
               alert('O servidor demorou muito para responder. Por favor, tente novamente.');
               throw new Error("Timeout na comunicação com o servidor.");
             }
-            console.warn('Backend offline, gerando PIX de Teste:', fetchErr);
-            if(fetchErr.message === "Estoque insuficiente") throw fetchErr;
+            console.warn('Erro na requisição PIX:', fetchErr);
+            throw fetchErr;
           }
-
-          const dummyQrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020126580014BR.GOV.BCB.PIX0136malalastore-teste-pix-demonstracao520400005303986540510.005802BR5912MALALA_STORE6009RIO_DE_JANEIRO62070503***6304E2CA';
-          const dummyCopyPaste = '00020126580014BR.GOV.BCB.PIX0136malalastore-teste-pix-demonstracao520400005303986540510.005802BR5912MALALA_STORE6009RIO_DE_JANEIRO62070503***6304E2CA';
-
-          document.getElementById('pixQrCodeImg').src = dummyQrCode;
-          document.getElementById('pixCopyPasteInput').value = dummyCopyPaste;
-          document.getElementById('checkoutFormStep').classList.add('hidden');
-          document.getElementById('pixResultStep').classList.remove('hidden');
-
-          const dummyOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-          saveLocalDemoOrder(payerData, formattedItems, 'PIX', 'Pendente');
-          enviarEmailConfirmacaoEmailJS(payerData.email, dummyOrderId, formattedItems);
-          cart = []; updateCart();
-          showToast('PIX de Teste Gerado!', 'Demonstração ativa.');
 
         } else {
           try {
+            const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9'); // Use your actual public key
+            const cardTokenData = {
+              cardNumber: document.getElementById('cardNumber').value.replace(/\D/g, ''),
+              cardholderName: document.getElementById('cardHolderName').value.trim(),
+              cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
+              cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
+              securityCode: document.getElementById('cardCvv').value.trim(),
+              identificationType: payerData.identification.type,
+              identificationNumber: payerData.identification.number,
+            };
+
+            const tokenResponse = await mp.createCardToken(cardTokenData);
+
+            if (tokenResponse.error) {
+               alert('Erro ao processar cartão. Verifique os dados inseridos.');
+               throw new Error(tokenResponse.error);
+            }
+
             const res = await fetch(`${backendUrl}/api/payments/card`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                token: 'TEST_CARD_TOKEN_' + Date.now(),
-                payment_method_id: 'visa',
+                token: tokenResponse.id,
+                payment_method_id: 'visa', // Or derive this dynamically if needed, keeping visa to match previous fake payload
                 installments: parseInt(document.getElementById('cardInstallments').value || 1),
                 payer: payerData,
                 items: formattedItems
@@ -1331,16 +1335,10 @@
               alert('O servidor demorou muito para responder. Por favor, tente novamente.');
               throw new Error("Timeout na comunicação com o servidor.");
             }
-            console.warn('Backend offline, gerando Pagamento de Teste:', fetchErr);
-            if(fetchErr.message === "Estoque insuficiente") throw fetchErr;
+            console.warn('Erro na requisição de Cartão:', fetchErr);
+            throw fetchErr;
           }
 
-          const demoOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-          saveLocalDemoOrder(payerData, formattedItems, 'Cartão de Crédito', 'Pago');
-          enviarEmailConfirmacaoEmailJS(payerData.email, demoOrderId, formattedItems);
-          showToast('Pagamento Aprovado (Teste)!', 'Aprovado em modo demonstração.');
-          cart = []; updateCart();
-          closeCheckoutModal();
         }
       } catch (err) {
         console.error('Checkout error:', err);
@@ -1349,30 +1347,6 @@
         btn.classList.replace('bg-gray-400', 'bg-emerald-600');
         btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
         togglePayMethodUI(selectedPayMethod);
-      }
-    }
-
-    function saveLocalDemoOrder(payer, items, method, status = 'Pendente') {
-      const existing = JSON.parse(localStorage.getItem('malala_orders') || '[]');
-      const newOrder = {
-        id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
-        payer: payer,
-        items: items,
-        total: items.reduce((a, b) => a + (b.price * b.quantity), 0),
-        paymentMethod: method,
-        status: status,
-        createdAt: new Date().toISOString()
-      };
-      existing.unshift(newOrder);
-      localStorage.setItem('malala_orders', JSON.stringify(existing));
-
-      if (db) {
-        db.collection('orders').doc(newOrder.id).set({
-          ...newOrder,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-            if (status === 'Pago') decrementStock(items);
-        }).catch(err => console.warn('Firestore save order error:', err));
       }
     }
 
