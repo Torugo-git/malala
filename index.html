@@ -1274,8 +1274,27 @@
         } else {
           try {
             const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9'); // Use your actual public key
+            const cardNumberValue = document.getElementById('cardNumber').value.replace(/\D/g, '');
+
+            if (!cardNumberValue || cardNumberValue.length < 13) {
+              alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
+              throw new Error("Número do cartão inválido");
+            }
+
+            const cardBin = cardNumberValue.substring(0, 6);
+            let paymentMethodId = 'visa'; // Default fallback
+
+            try {
+              const paymentMethods = await mp.getPaymentMethods({ bin: cardBin });
+              if (paymentMethods && paymentMethods.results && paymentMethods.results.length > 0) {
+                 paymentMethodId = paymentMethods.results[0].id;
+              }
+            } catch (pmError) {
+              console.warn("Aviso: Não foi possível obter o payment_method_id, usando fallback.", pmError);
+            }
+
             const cardTokenData = {
-              cardNumber: document.getElementById('cardNumber').value.replace(/\D/g, ''),
+              cardNumber: cardNumberValue,
               cardholderName: document.getElementById('cardHolderName').value.trim(),
               cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
               cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
@@ -1288,7 +1307,7 @@
 
             if (tokenResponse.error) {
                alert('Erro ao processar cartão. Verifique os dados inseridos.');
-               throw new Error(tokenResponse.error);
+               throw new Error(JSON.stringify(tokenResponse.error));
             }
 
             const res = await fetch(`${backendUrl}/api/payments/card`, {
@@ -1296,7 +1315,7 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 token: tokenResponse.id,
-                payment_method_id: 'visa', // Or derive this dynamically if needed, keeping visa to match previous fake payload
+                payment_method_id: paymentMethodId,
                 installments: parseInt(document.getElementById('cardInstallments').value || 1),
                 payer: payerData,
                 items: formattedItems
