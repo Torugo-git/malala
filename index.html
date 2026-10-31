@@ -517,12 +517,19 @@
             </div>
           </div>
 
-          <!-- DADOS DO CARTÃO (SELECIONADO 'CARD') -->
+          <!-- DADOS DO CARTÃO COM VALIDAÇÃO LUHN + TRAVA ANTI-ZEROS -->
           <div id="cardFieldsContainer" class="hidden space-y-3 pt-2 border-t border-gray-100">
             <div>
               <label class="block text-xs font-bold text-gray-700 mb-1">Número do Cartão</label>
-              <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              <div class="relative">
+                <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 pl-3 pr-12 rounded-xl focus:outline-none focus:border-[#FF5500]">
+                <div id="cardBrandIcon" class="absolute right-3 top-2.5 text-gray-400 text-base font-bold flex items-center">
+                  <i class="fa-regular fa-credit-card"></i>
+                </div>
+              </div>
+              <p id="cardErrorMsg" class="text-[10px] text-red-500 font-bold mt-1 hidden">Cartão de crédito inválido</p>
             </div>
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Validade (MM/AA)</label>
@@ -533,9 +540,18 @@
                 <input type="text" id="cardCvv" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
               </div>
             </div>
+
             <div>
               <label class="block text-xs font-bold text-gray-700 mb-1">Nome Impresso no Cartão</label>
               <input type="text" id="cardHolderName" placeholder="NOME COMO NO CARTÃO" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+            </div>
+
+            <!-- SELETOR DE PARCELAS -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nº de Parcelas</label>
+              <select id="cardInstallments" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500] font-bold text-gray-800">
+                <option value="1">1x à vista</option>
+              </select>
             </div>
           </div>
 
@@ -561,7 +577,7 @@
         </form>
       </div>
 
-      <!-- PASSO 2: RESULTADO DO PIX (QR CODE & COPY/PASTE) -->
+      <!-- PASSO 2: RESULTADO DO PIX -->
       <div id="pixResultStep" class="hidden text-center space-y-4">
         <div class="p-3 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-100 text-xs font-bold flex items-center justify-center gap-2">
           <i class="fa-solid fa-clock-rotate-left"></i> Aguardando Pagamento no PIX
@@ -619,7 +635,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO (SEM WHATSAPP) -->
+  <!-- MODAL DE VISUALIZAÇÃO RÁPIDA DO PRODUTO -->
   <div id="productModal" class="fixed inset-0 z-50 hidden overflow-y-auto p-3 sm:p-4 md:p-6 flex items-center justify-center">
     <div onclick="closeProductModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden my-auto max-h-[90vh] sm:max-h-[85vh] z-10">
@@ -664,7 +680,6 @@
             </div>
           </div>
 
-          <!-- BOTÃO DE ADICIONAR COM LARGURA TOTAL (WHATSAPP REMOVIDO) -->
           <div>
             <button id="modalAddToCartBtn" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-[#FF5500]/20">
               <i class="fa-solid fa-cart-plus text-sm"></i> Adicionar ao Carrinho
@@ -979,9 +994,37 @@
         e.target.value = val;
       }
 
+      // Detecção de Cartão, Bandeira e Validação Luhn em tempo real com trava anti-zeros
       if (e.target.id === 'cardNumber') {
           let val = e.target.value.replace(/\D/g, '').substring(0,16);
           e.target.value = val.match(/.{1,4}/g)?.join(' ') || val;
+
+          const brandIcon = document.getElementById('cardBrandIcon');
+          const errorMsg = document.getElementById('cardErrorMsg');
+          const inputField = document.getElementById('cardNumber');
+
+          if (val.startsWith('4')) {
+              brandIcon.innerHTML = '<i class="fa-brands fa-cc-visa text-blue-600 text-lg"></i>';
+          } else if (/^5[1-5]/.test(val) || /^2[2-7]/.test(val)) {
+              brandIcon.innerHTML = '<i class="fa-brands fa-cc-mastercard text-orange-600 text-lg"></i>';
+          } else if (val.startsWith('34') || val.startsWith('37')) {
+              brandIcon.innerHTML = '<i class="fa-brands fa-cc-amex text-blue-400 text-lg"></i>';
+          } else {
+              brandIcon.innerHTML = '<i class="fa-regular fa-credit-card"></i>';
+          }
+
+          if (val.length >= 13) {
+              if (!isValidLuhn(val)) {
+                  errorMsg.classList.remove('hidden');
+                  inputField.classList.add('border-red-500', 'bg-red-50');
+              } else {
+                  errorMsg.classList.add('hidden');
+                  inputField.classList.remove('border-red-500', 'bg-red-50');
+              }
+          } else {
+              errorMsg.classList.add('hidden');
+              inputField.classList.remove('border-red-500', 'bg-red-50');
+          }
       }
 
       if (e.target.id === 'cardExpiry') {
@@ -1026,6 +1069,21 @@
         return true;
     }
 
+    function isValidLuhn(cardNumber) {
+        let cleanCard = (cardNumber + '').replace(/\D/g, '');
+
+        // Trava rigorosa: rejeita se for menor que 13 dígitos ou se forem todos números iguais (ex: 0000...)
+        if (cleanCard.length < 13 || /^(\d)\1+$/.test(cleanCard)) {
+            return false;
+        }
+
+        let arr = cleanCard.split('').reverse().map(x => parseInt(x, 10));
+        let lastDigit = arr.shift();
+        let sum = arr.reduce((acc, val, i) => (i % 2 !== 0 ? acc + val : acc + ((val * 2 > 9) ? (val * 2) - 9 : (val * 2))), 0);
+        sum += lastDigit;
+        return sum % 10 === 0;
+    }
+
     function openMercadoPagoCheckout() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
       toggleCart(false);
@@ -1041,6 +1099,15 @@
 
       const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
       document.getElementById('checkoutTotalDisplay').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+      const selectInstallments = document.getElementById('cardInstallments');
+      let installmentsHtml = '';
+      for (let i = 1; i <= 10; i++) {
+          let installmentValue = total / i;
+          installmentsHtml += `<option value="${i}">${i}x de R$ ${installmentValue.toFixed(2).replace('.', ',')} sem juros</option>`;
+      }
+      selectInstallments.innerHTML = installmentsHtml;
+
       document.getElementById('checkoutFormStep').classList.remove('hidden');
       document.getElementById('pixResultStep').classList.add('hidden');
       document.getElementById('checkoutModal').classList.remove('hidden');
@@ -1069,6 +1136,29 @@
           alert('Por favor, informe um CPF válido.');
           document.getElementById('payCpf').focus();
           return;
+      }
+
+      // TRAVA DE SEGURANÇA RIGOROSA
+      if (selectedPayMethod === 'card') {
+          const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
+          const cardCvv = document.getElementById('cardCvv').value.trim();
+          const cardName = document.getElementById('cardHolderName').value.trim();
+
+          if (!isValidLuhn(rawCardNum)) {
+              alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
+              document.getElementById('cardNumber').focus();
+              return;
+          }
+          if (cardCvv.length < 3) {
+              alert('Por favor, informe um CVV válido.');
+              document.getElementById('cardCvv').focus();
+              return;
+          }
+          if (!cardName || cardName.length < 3) {
+              alert('Por favor, informe o nome impresso no cartão corretamente.');
+              document.getElementById('cardHolderName').focus();
+              return;
+          }
       }
 
       const firstName = document.getElementById('payFirstName').value;
@@ -1154,7 +1244,7 @@
               body: JSON.stringify({
                 token: 'TEST_CARD_TOKEN_' + Date.now(),
                 payment_method_id: 'visa',
-                installments: 1,
+                installments: parseInt(document.getElementById('cardInstallments').value || 1),
                 payer: payerData,
                 items: formattedItems
               })
