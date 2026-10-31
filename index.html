@@ -1244,14 +1244,16 @@
         } else {
           try {
             const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9'); // Use your actual public key
-            const cardNumberValue = document.getElementById('cardNumber').value.replace(/\D/g, '');
 
-            if (!cardNumberValue || cardNumberValue.length < 13) {
+            // Lógica de extração do BIN validado e sem espaços
+            const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
+            const cardBin = rawCardNum.substring(0, 6);
+
+            if (!rawCardNum || rawCardNum.length < 13) {
               alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
               throw new Error("Número do cartão inválido");
             }
 
-            const cardBin = cardNumberValue.substring(0, 6);
             let paymentMethodId = 'visa'; // Default fallback
 
             try {
@@ -1264,8 +1266,8 @@
             }
 
             const cardTokenData = {
-              cardNumber: cardNumberValue,
-              bin: cardBin, // BIN passado explicitamente conforme solicitado para a geração do token
+              cardNumber: rawCardNum,
+              bin: cardBin,
               cardholderName: document.getElementById('cardHolderName').value.trim(),
               cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
               cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
