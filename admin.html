@@ -326,7 +326,7 @@
       document.getElementById('loginModal').classList.remove('hidden');
     }
 
-    async function loadOrdersFromCloud() {
+    async function loadOrdersFromCloud(isLoadMore = false) {
       const container = document.getElementById('adminOrdersContainer');
       
       if (!db) {
@@ -335,31 +335,48 @@
         return;
       }
 
-      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+      if (!isLoadMore) {
+        container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+        lastOrderDoc = null;
+        ordersList = [];
+        hasMoreOrders = true;
+      } else {
+        const btn = document.getElementById('loadMoreOrdersBtn');
+        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando...`;
+      }
 
       try {
-        const snapshot = await db.collection('orders').get();
+        let query = db.collection('orders').orderBy('createdAt', 'desc').limit(ORDERS_PER_PAGE);
         
-        let tempOrders = [];
+        if (isLoadMore && lastOrderDoc) {
+          query = query.startAfter(lastOrderDoc);
+        }
+
+        const snapshot = await query.get();
+        
+        if (snapshot.empty) {
+          hasMoreOrders = false;
+          renderOrdersTable();
+          return;
+        }
+
+        lastOrderDoc = snapshot.docs[snapshot.docs.length - 1];
+        hasMoreOrders = snapshot.docs.length === ORDERS_PER_PAGE;
+
         snapshot.forEach(doc => {
-          tempOrders.push({ id: doc.id, ...doc.data() });
+          if (!ordersList.some(o => o.id === doc.id)) {
+            ordersList.push({ id: doc.id, ...doc.data() });
+          }
         });
-
-        tempOrders.sort((a, b) => {
-          let timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
-          let timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
-          return timeB - timeA;
-        });
-
-        ordersList = tempOrders;
-        hasMoreOrders = false;
 
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
       } catch (err) {
         console.error("❌ Erro ao buscar pedidos do Firebase:", err);
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
+        if (!isLoadMore) {
+          try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+          renderOrdersTable();
+        }
       }
     }
 
