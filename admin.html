@@ -319,13 +319,22 @@
         return;
       }
       if (ordersUnsubscribe) ordersUnsubscribe();
-      ordersUnsubscribe = db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snap => {
+      
+      // Consulta robusta que funciona com qualquer ID do Firestore
+      ordersUnsubscribe = db.collection('orders').onSnapshot(snap => {
         ordersList = [];
         snap.forEach(doc => ordersList.push({ id: doc.id, ...doc.data() }));
+        
+        // Ordena por data decrescente de forma segura no cliente
+        ordersList.sort((a, b) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tB - tA;
+        });
+
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
       }, err => {
-        // Fallback local se a nuvem bloquear
         try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
         renderOrdersTable();
       });
@@ -430,6 +439,7 @@
         }
 
         const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${i.quantity}x ${i.title}</span><span class="text-gray-600 font-mono">R$ ${((i.price || 0)*i.quantity).toFixed(2).replace('.',',')}</span></div>`).join('');
+        const totalVal = ord.total || ord.totalAmount || 0;
 
         return `
           <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
@@ -439,7 +449,7 @@
                 <span class="text-xs font-bold text-gray-900">${payer.name || payer.email || 'Cliente'}</span>
                 <span class="text-[10px] text-gray-400 ml-2 hidden sm:inline"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
               </div>
-              <span class="text-xs font-black text-[#FF5500]">R$ ${(ord.total || 0).toFixed(2).replace('.',',')}</span>
+              <span class="text-xs font-black text-[#FF5500]">R$ ${totalVal.toFixed(2).replace('.',',')}</span>
             </div>
 
             <div class="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
