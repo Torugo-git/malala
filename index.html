@@ -1243,33 +1243,33 @@
 
         } else {
           try {
-            const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9'); // Use your actual public key
+            const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9');
 
-            // Lógica de extração do BIN validado e sem espaços
             const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
-            const cardBin = rawCardNum.substring(0, 6);
-
-            if (cardBin.length < 6) {
-              throw new Error('Número de cartão inválido para identificar a bandeira.');
-            }
-
+            
             if (!rawCardNum || rawCardNum.length < 13) {
               alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
               throw new Error("Número do cartão inválido");
             }
 
-            const paymentMethods = await mp.getPaymentMethods({ bin: cardBin });
-            const paymentMethodId = paymentMethods.results[0].id;
+            // BYPASS DE SEGURANÇA: Identificação manual da bandeira sem chamar a API que dá erro 404
+            let paymentMethodId = 'visa'; 
+            if (/^5[1-5]/.test(rawCardNum) || /^2[2-7]/.test(rawCardNum)) paymentMethodId = 'master';
+            else if (rawCardNum.startsWith('34') || rawCardNum.startsWith('37')) paymentMethodId = 'amex';
+            else if (rawCardNum.startsWith('4')) paymentMethodId = 'visa';
+            else if (/^38/.test(rawCardNum) || /^606282/.test(rawCardNum)) paymentMethodId = 'hipercard';
+            else if (/^6(?:011|5)/.test(rawCardNum)) paymentMethodId = 'discover';
+            else if (/^3(?:0[0-5]|[68][0-9])/.test(rawCardNum)) paymentMethodId = 'diners';
 
+            // Criação do token sem o parâmetro "bin"
             const cardTokenData = {
               cardNumber: rawCardNum,
-              bin: cardBin,
               cardholderName: document.getElementById('cardHolderName').value.trim(),
               cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
               cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
               securityCode: document.getElementById('cardCvv').value.trim(),
               identificationType: payerData.identification.type,
-              identificationNumber: payerData.identification.number,
+              identificationNumber: payerData.identification.number
             };
 
             const tokenResponse = await mp.createCardToken(cardTokenData);
@@ -1305,6 +1305,10 @@
                 throw new Error("Pagamento recusado pelo Mercado Pago.");
             }
 
+            if (!res.ok) {
+                throw new Error(`Erro no servidor: HTTP ${res.status}`);
+            }
+
             const data = await res.json();
 
             if (data.success) {
@@ -1331,7 +1335,6 @@
             console.warn('Erro na requisição de Cartão:', fetchErr);
             throw fetchErr;
           }
-
         }
       } catch (err) {
         console.error('Checkout error:', err);
