@@ -956,6 +956,7 @@
     }
 
     function closeCheckoutModal() {
+      if (pixPollingInterval) clearInterval(pixPollingInterval);
       document.getElementById('checkoutModal').classList.add('hidden');
     }
 
@@ -966,6 +967,26 @@
         submitBtn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
       } else {
         submitBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar Online via Mercado Pago';
+      }
+    }
+
+    let pixPollingInterval = null;
+
+    async function checkPixStatus(orderId, backendUrl) {
+      try {
+        const res = await fetch(`${backendUrl}/api/orders/${orderId}/status`);
+        const data = await res.json();
+
+        if (data.status === 'Pago') {
+          clearInterval(pixPollingInterval);
+          window.location.href = 'minha-conta.html';
+        } else if (data.status === 'Cancelado') {
+           clearInterval(pixPollingInterval);
+           alert('Este pedido foi cancelado.');
+           window.location.href = 'index.html';
+        }
+      } catch (err) {
+        console.warn('Erro ao verificar status do PIX:', err);
       }
     }
 
@@ -1036,6 +1057,12 @@
               
               cart = []; updateCart();
               showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
+
+              if (pixPollingInterval) clearInterval(pixPollingInterval);
+              pixPollingInterval = setInterval(() => {
+                checkPixStatus(data.orderId, backendUrl);
+              }, 4000);
+
               return;
             }
           } catch(fetchErr) {
