@@ -7,6 +7,7 @@
 
   <!-- Firebase SDK (Compat version) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- Tailwind CSS CDN -->
@@ -30,12 +31,12 @@
     <div class="bg-white max-w-md w-full rounded-3xl p-8 shadow-2xl border border-gray-100 text-center relative">
       <img src="logo-circle.png" alt="Malala Store" class="w-16 h-16 rounded-full mx-auto mb-4 border-2 border-[#FF5500] shadow-md">
       <h2 class="text-2xl font-black text-gray-900">Painel do Lojista</h2>
-      <p class="text-xs text-gray-500 mt-1 mb-6">Digite a senha de acesso para gerenciar o catálogo.</p>
+      <p class="text-xs text-gray-500 mt-1 mb-6">Digite a senha da conta da loja para gerenciar o sistema.</p>
 
       <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <input type="password" id="adminPassword" placeholder="Senha de Acesso" class="w-full bg-gray-50 border border-gray-200 text-sm text-center font-bold py-3 px-4 rounded-xl focus:outline-none focus:border-[#FF5500] transition-all" required>
-          <p id="loginError" class="text-xs text-red-500 font-bold mt-2 hidden">Senha incorreta! Tente novamente.</p>
+          <input type="password" id="adminPassword" placeholder="Senha do Firebase Auth" class="w-full bg-gray-50 border border-gray-200 text-sm text-center font-bold py-3 px-4 rounded-xl focus:outline-none focus:border-[#FF5500] transition-all" required>
+          <p id="loginError" class="text-xs text-red-500 font-bold mt-2 hidden">Senha incorreta ou acesso negado!</p>
         </div>
         <button type="submit" class="w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-[#FF5500]/25 flex items-center justify-center gap-2">
           <i class="fa-solid fa-lock-open"></i> Entrar no Gerenciador
@@ -151,19 +152,19 @@
           <p class="text-xs text-gray-500">Gira os pagamentos, status logístico e datas das encomendas.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <select id="filterDate" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterDate" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Data: Todas</option>
             <option value="today">Hoje</option>
             <option value="week">Últimos 7 dias</option>
             <option value="month">Últimos 30 dias</option>
           </select>
-          <select id="filterPayment" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterPayment" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Pagamento: Todos</option>
             <option value="Pago">Apenas Pagos</option>
             <option value="Pendente">Apenas Pendentes</option>
             <option value="Cancelado">Apenas Cancelados</option>
           </select>
-          <select id="filterDelivery" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterDelivery" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Envio: Todos</option>
             <option value="Recebido">Pedido Recebido</option>
             <option value="Preparando">Em Separação</option>
@@ -254,14 +255,30 @@
     let adminProducts = [];
     let db = null;
     let ordersList = [];
-    let ordersUnsubscribe = null;
+
+    let visibleOrdersCount = 10;
+    const ORDERS_PER_PAGE = 10;
 
     document.addEventListener('DOMContentLoaded', () => {
-      if (sessionStorage.getItem('malala_logged') === 'true') {
-        document.getElementById('loginModal').classList.add('hidden');
-      }
       initFirebase();
       loadAdminProducts();
+
+      if (sessionStorage.getItem('malala_logged') === 'true') {
+        document.getElementById('loginModal').classList.add('hidden');
+        loadOrdersFromCloud();
+      }
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user && user.email === 'malalastore.pedidos@gmail.com') {
+          sessionStorage.setItem('malala_logged', 'true');
+          document.getElementById('loginModal').classList.add('hidden');
+          if (ordersList.length === 0) loadOrdersFromCloud();
+        } else {
+          if (sessionStorage.getItem('malala_logged') !== 'true') {
+            document.getElementById('loginModal').classList.remove('hidden');
+          }
+        }
+      });
     });
 
     function initFirebase() {
@@ -269,25 +286,9 @@
         if (!firebase.apps.length) firebase.initializeApp(defaultFirebaseConfig);
         db = firebase.firestore();
         initFirebaseAdminSync();
-      } catch(e) {}
-      loadOrders();
-    }
-
-    function handleLogin(e) {
-      e.preventDefault();
-      const pwd = document.getElementById('adminPassword').value;
-      if (pwd === 'malala123') {
-        sessionStorage.setItem('malala_logged', 'true');
-        document.getElementById('loginModal').classList.add('hidden');
-        loadOrders();
-      } else {
-        document.getElementById('loginError').classList.remove('hidden');
+      } catch(e) {
+        console.error("Erro ao iniciar Firebase:", e);
       }
-    }
-
-    function logout() {
-      sessionStorage.removeItem('malala_logged');
-      document.getElementById('loginModal').classList.remove('hidden');
     }
 
     function initFirebaseAdminSync() {
@@ -301,6 +302,78 @@
       });
     }
 
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('adminPassword').value;
+      const adminEmail = 'malalastore.pedidos@gmail.com';
+
+      try {
+        await firebase.auth().signInWithEmailAndPassword(adminEmail, pwd);
+        sessionStorage.setItem('malala_logged', 'true');
+        document.getElementById('loginModal').classList.add('hidden');
+        document.getElementById('loginError').classList.add('hidden');
+        loadOrdersFromCloud();
+      } catch (err) {
+        console.error("❌ Erro de autenticação:", err);
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    }
+
+    async function logout() {
+      try { await firebase.auth().signOut(); } catch(e){}
+      sessionStorage.removeItem('malala_logged');
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    async function loadOrdersFromCloud() {
+      const container = document.getElementById('adminOrdersContainer');
+
+      if (!db) {
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
+        return;
+      }
+
+      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
+
+      try {
+        const snapshot = await db.collection('orders').get();
+
+        let tempOrders = [];
+        snapshot.forEach(doc => {
+          tempOrders.push({ id: doc.id, ...doc.data() });
+        });
+
+        tempOrders.sort((a, b) => {
+          let timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+          let timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        ordersList = tempOrders;
+        localStorage.setItem('malala_orders', JSON.stringify(ordersList));
+        renderOrdersTable();
+      } catch (err) {
+        console.error("❌ Erro ao buscar pedidos do Firebase:", err);
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
+      }
+    }
+
+    function loadOrders() {
+      resetPagination();
+      loadOrdersFromCloud();
+    }
+
+    function resetPagination() {
+      visibleOrdersCount = ORDERS_PER_PAGE;
+    }
+
+    function loadMoreOrders() {
+      visibleOrdersCount += ORDERS_PER_PAGE;
+      renderOrdersTable();
+    }
+
     function switchTab(tab) {
       document.getElementById('tabProductsView').classList.toggle('hidden', tab !== 'products');
       document.getElementById('tabOrdersView').classList.toggle('hidden', tab !== 'orders');
@@ -310,25 +383,6 @@
 
       document.getElementById('tabProductsBtn').className = tab === 'products' ? btnActive : btnInactive;
       document.getElementById('tabOrdersBtn').className = tab === 'orders' ? btnActive : btnInactive;
-    }
-
-    function loadOrders() {
-      if (!db) {
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
-        return;
-      }
-      if (ordersUnsubscribe) ordersUnsubscribe();
-      ordersUnsubscribe = db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snap => {
-        ordersList = [];
-        snap.forEach(doc => ordersList.push({ id: doc.id, ...doc.data() }));
-        localStorage.setItem('malala_orders', JSON.stringify(ordersList));
-        renderOrdersTable();
-      }, err => {
-        // Fallback local se a nuvem bloquear
-        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-        renderOrdersTable();
-      });
     }
 
     function calculateDashboard(filteredOrders) {
@@ -411,7 +465,10 @@
         return;
       }
 
-      container.innerHTML = filtered.map(ord => {
+      // Paginação por lotes (exibe até visibleOrdersCount)
+      const paginatedOrders = filtered.slice(0, visibleOrdersCount);
+
+      let html = paginatedOrders.map(ord => {
         const payer = ord.payer || {};
         const payStatus = ord.status || 'Pendente';
         const delStatus = ord.deliveryStatus || 'Recebido';
@@ -430,6 +487,7 @@
         }
 
         const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${i.quantity}x ${i.title}</span><span class="text-gray-600 font-mono">R$ ${((i.price || 0)*i.quantity).toFixed(2).replace('.',',')}</span></div>`).join('');
+        const totalVal = ord.total || ord.totalAmount || 0;
 
         return `
           <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
@@ -439,7 +497,7 @@
                 <span class="text-xs font-bold text-gray-900">${payer.name || payer.email || 'Cliente'}</span>
                 <span class="text-[10px] text-gray-400 ml-2 hidden sm:inline"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
               </div>
-              <span class="text-xs font-black text-[#FF5500]">R$ ${(ord.total || 0).toFixed(2).replace('.',',')}</span>
+              <span class="text-xs font-black text-[#FF5500]">R$ ${totalVal.toFixed(2).replace('.',',')}</span>
             </div>
 
             <div class="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
@@ -469,6 +527,19 @@
           </div>
         `;
       }).join('');
+
+      // Botão "Carregar Mais" se houver mais pedidos filtrados para exibir
+      if (visibleOrdersCount < filtered.length) {
+        html += `
+          <div class="flex justify-center mt-6 pt-4 border-t border-gray-200">
+            <button onclick="loadMoreOrders()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center gap-2">
+               <i class="fa-solid fa-plus text-[#FF5500]"></i> Carregar Mais Pedidos (${filtered.length - visibleOrdersCount} restantes)
+            </button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
     }
 
     function loadAdminProducts() {
