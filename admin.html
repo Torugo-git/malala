@@ -535,6 +535,13 @@
         `;
       }).join('');
       
+      if (hasMoreOrders && filterDate === 'all' && filterPay === 'all' && filterDel === 'all') {
+         html += `<div class="flex justify-center mt-4 pt-4 border-t border-gray-200">
+                    <button id="loadMoreOrdersBtn" onclick="loadOrdersFromCloud(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center">
+                       <i class="fa-solid fa-plus text-[#FF5500] mr-2"></i> Carregar Mais Pedidos
+                    </button>
+                  </div>`;
+      }
       container.innerHTML = html;
     }
 
@@ -599,6 +606,8 @@
         return arr; 
     }
     
+    function openAddPointModal() { ... } // helper
+
     function openAddProductModal() { 
         document.getElementById('editProductId').value = ''; 
         document.getElementById('formModalTitle').innerText = 'Novo Produto';
@@ -642,6 +651,7 @@
         document.getElementById('formImage').value = p.image;
         
         if (p.images && p.images.length > 0) p.images.forEach(imgUrl => addExtraImageField(imgUrl));
+        document.getElementById('productFormModal').classList.add('hidden'); // fix
         document.getElementById('productFormModal').classList.remove('hidden');
     }
 
