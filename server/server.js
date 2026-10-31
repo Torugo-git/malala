@@ -304,7 +304,7 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
               service_id: 'service_fvb6yhg',
               template_id: 'template_n10dl83',
               user_id: 'vI8slPfRAcF3rOg0P',
-              accessToken: process.env.EMAILJS_PRIVATE_KEY || 'SUA_CHAVE_PRIVADA',
+              accessToken: process.env.EMAILJS_PRIVATE_KEY || 'mkUCD7krKBjjxbAU75nmO',
               template_params: {
                 email: payerEmail,
                 order_id: orderId,
