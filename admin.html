@@ -326,7 +326,7 @@
       document.getElementById('loginModal').classList.remove('hidden');
     }
 
-    async function loadOrdersFromCloud(isLoadMore = false) {
+    async function loadOrdersFromCloud() {
       const container = document.getElementById('adminOrdersContainer');
       
       if (!db) {
@@ -335,30 +335,16 @@
         return;
       }
 
-      if (!isLoadMore) {
-        container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
-        ordersList = [];
-      } else {
-        const btn = document.getElementById('loadMoreOrdersBtn');
-        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando...`;
-      }
+      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
 
       try {
-        // Busca direta na coleção orders sem restrições complexas de cursor que disparam o erro de permissão
         const snapshot = await db.collection('orders').get();
         
-        if (snapshot.empty) {
-          hasMoreOrders = false;
-          renderOrdersTable();
-          return;
-        }
-
         let tempOrders = [];
         snapshot.forEach(doc => {
           tempOrders.push({ id: doc.id, ...doc.data() });
         });
 
-        // Ordena por data mais recente no próprio navegador
         tempOrders.sort((a, b) => {
           let timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
           let timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
@@ -366,7 +352,7 @@
         });
 
         ordersList = tempOrders;
-        hasMoreOrders = false; // Como trazemos todos para o admin, desativa a paginação por cursor problemática
+        hasMoreOrders = false;
 
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
@@ -532,13 +518,6 @@
         `;
       }).join('');
       
-      if (hasMoreOrders && filterDate === 'all' && filterPay === 'all' && filterDel === 'all') {
-         html += `<div class="flex justify-center mt-4 pt-4 border-t border-gray-200">
-                    <button id="loadMoreOrdersBtn" onclick="loadOrdersFromCloud(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center">
-                       <i class="fa-solid fa-plus text-[#FF5500] mr-2"></i> Carregar Mais Pedidos
-                    </button>
-                  </div>`;
-      }
       container.innerHTML = html;
     }
 
