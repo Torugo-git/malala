@@ -1246,24 +1246,22 @@
             const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9'); // Use your actual public key
 
             // Lógica de extração do BIN validado e sem espaços
-            const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
-            const cardBin = rawCardNum.substring(0, 6);
+            const cardNumberValue = document.getElementById('cardNumber').value;
+            const cardBin = cardNumberValue.replace(/\D/g, '').substring(0, 6);
+
+            if (cardBin.length < 6) {
+              throw new Error('Número de cartão inválido para identificar a bandeira.');
+            }
+
+            const rawCardNum = cardNumberValue.replace(/\D/g, '');
 
             if (!rawCardNum || rawCardNum.length < 13) {
               alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
               throw new Error("Número do cartão inválido");
             }
 
-            let paymentMethodId = 'visa'; // Default fallback
-
-            try {
-              const paymentMethods = await mp.getPaymentMethods({ bin: cardBin });
-              if (paymentMethods && paymentMethods.results && paymentMethods.results.length > 0) {
-                 paymentMethodId = paymentMethods.results[0].id;
-              }
-            } catch (pmError) {
-              console.warn("Aviso: Não foi possível obter o payment_method_id, usando fallback.", pmError);
-            }
+            const paymentMethods = await mp.getPaymentMethods({ bin: cardBin });
+            const paymentMethodId = paymentMethods.results[0].id;
 
             const cardTokenData = {
               cardNumber: rawCardNum,
