@@ -264,14 +264,20 @@
       initFirebase();
       loadAdminProducts();
       
+      if (sessionStorage.getItem('malala_logged') === 'true') {
+        document.getElementById('loginModal').classList.add('hidden');
+        loadOrdersFromCloud();
+      }
+
       firebase.auth().onAuthStateChanged((user) => {
         if (user && user.email === 'malalastore.pedidos@gmail.com') {
           sessionStorage.setItem('malala_logged', 'true');
           document.getElementById('loginModal').classList.add('hidden');
-          loadOrdersFromCloud();
+          if (ordersList.length === 0) loadOrdersFromCloud();
         } else {
-          sessionStorage.removeItem('malala_logged');
-          document.getElementById('loginModal').classList.remove('hidden');
+          if (sessionStorage.getItem('malala_logged') !== 'true') {
+            document.getElementById('loginModal').classList.remove('hidden');
+          }
         }
       });
     });
