@@ -337,22 +337,15 @@
 
       if (!isLoadMore) {
         container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
-        lastOrderDoc = null;
         ordersList = [];
-        hasMoreOrders = true;
       } else {
         const btn = document.getElementById('loadMoreOrdersBtn');
         if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando...`;
       }
 
       try {
-        let query = db.collection('orders').orderBy('createdAt', 'desc').limit(ORDERS_PER_PAGE);
-        
-        if (isLoadMore && lastOrderDoc) {
-          query = query.startAfter(lastOrderDoc);
-        }
-
-        const snapshot = await query.get();
+        // Busca direta na coleção orders sem restrições complexas de cursor que disparam o erro de permissão
+        const snapshot = await db.collection('orders').get();
         
         if (snapshot.empty) {
           hasMoreOrders = false;
@@ -360,23 +353,27 @@
           return;
         }
 
-        lastOrderDoc = snapshot.docs[snapshot.docs.length - 1];
-        hasMoreOrders = snapshot.docs.length === ORDERS_PER_PAGE;
-
+        let tempOrders = [];
         snapshot.forEach(doc => {
-          if (!ordersList.some(o => o.id === doc.id)) {
-            ordersList.push({ id: doc.id, ...doc.data() });
-          }
+          tempOrders.push({ id: doc.id, ...doc.data() });
         });
+
+        // Ordena por data mais recente no próprio navegador
+        tempOrders.sort((a, b) => {
+          let timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+          let timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        ordersList = tempOrders;
+        hasMoreOrders = false; // Como trazemos todos para o admin, desativa a paginação por cursor problemática
 
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
       } catch (err) {
         console.error("❌ Erro ao buscar pedidos do Firebase:", err);
-        if (!isLoadMore) {
-          try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-          renderOrdersTable();
-        }
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
       }
     }
 
