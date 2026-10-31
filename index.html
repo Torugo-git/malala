@@ -519,40 +519,7 @@
 
           <!-- DADOS DO CARTÃO COM VALIDAÇÃO LUHN + TRAVA ANTI-ZEROS -->
           <div id="cardFieldsContainer" class="hidden space-y-3 pt-2 border-t border-gray-100">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Número do Cartão</label>
-              <div class="relative">
-                <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 pl-3 pr-12 rounded-xl focus:outline-none focus:border-[#FF5500]">
-                <div id="cardBrandIcon" class="absolute right-3 top-2.5 text-gray-400 text-base font-bold flex items-center">
-                  <i class="fa-regular fa-credit-card"></i>
-                </div>
-              </div>
-              <p id="cardErrorMsg" class="text-[10px] text-red-500 font-bold mt-1 hidden">Cartão de crédito inválido</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Validade (MM/AA)</label>
-                <input type="text" id="cardExpiry" placeholder="12/28" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">CVV</label>
-                <input type="text" id="cardCvv" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nome Impresso no Cartão</label>
-              <input type="text" id="cardHolderName" placeholder="NOME COMO NO CARTÃO" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-            </div>
-
-            <!-- SELETOR DE PARCELAS -->
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nº de Parcelas</label>
-              <select id="cardInstallments" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500] font-bold text-gray-800">
-                <option value="1">1x à vista</option>
-              </select>
-            </div>
+            <div id="cardPaymentBrickContainer"></div>
           </div>
 
           <!-- CHECKBOX DE TERMOS -->
@@ -784,36 +751,6 @@
       }, (err) => {
         console.warn("Erro ao sincronizar com Firebase:", err);
       });
-    }
-
-    async function decrementStock(purchasedItems) {
-      if (!db) return;
-      try {
-        const docRef = db.collection('malala_store').doc('catalog');
-        const docSnap = await docRef.get();
-        if (docSnap.exists && docSnap.data().products) {
-          let catProducts = docSnap.data().products;
-          let changed = false;
-
-          purchasedItems.forEach(item => {
-            const p = catProducts.find(x => String(x.id) === String(item.id));
-            if (p && p.stock !== undefined) {
-              p.stock = Math.max(0, p.stock - item.quantity);
-              changed = true;
-            }
-          });
-
-          if (changed) {
-            await docRef.update({
-              products: catProducts,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("Estoque reduzido com sucesso no Firebase.");
-          }
-        }
-      } catch (e) {
-        console.warn('Erro ao baixar estoque no catálogo:', e);
-      }
     }
 
     function verifyCartStock() {
@@ -1222,7 +1159,7 @@
       try {
        const backendUrl = 'https://malala-backend-1.onrender.com';
        const controller = new AbortController();
-       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
 
         if (selectedPayMethod === 'pix') {
           try {
@@ -1330,11 +1267,16 @@
                 throw new Error("Estoque insuficiente");
             }
             
+            if (res.status === 400) {
+                const errorData = await res.json();
+                alert(`Pagamento recusado: ${errorData.status_detail || 'Verifique os dados do cartão e tente novamente.'}`);
+                throw new Error("Pagamento recusado pelo Mercado Pago.");
+            }
+
             const data = await res.json();
 
             if (data.success) {
               showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
-              decrementStock(formattedItems);
               enviarEmailConfirmacaoEmailJS(payerData.email, data.orderId || ('ORD-' + Math.floor(100000 + Math.random() * 900000)), formattedItems);
               cart = []; updateCart();
               closeCheckoutModal();
@@ -1361,6 +1303,12 @@
         }
       } catch (err) {
         console.error('Checkout error:', err);
+        // Ensure UI resets completely in case of an error not caught by AbortError handling
+        if (selectedPayMethod === 'pix') {
+          btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
+        } else {
+          btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+        }
       } finally {
         btn.disabled = false;
         btn.classList.replace('bg-gray-400', 'bg-emerald-600');
