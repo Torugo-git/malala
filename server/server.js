@@ -241,6 +241,26 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
   }
 });
 
+// ROTA DE STATUS DO PEDIDO (POLLING PARA PIX)
+app.get('/api/orders/:id/status', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
+
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      return res.status(404).json({ error: 'Pedido não encontrado.' });
+    }
+
+    res.status(200).json({ status: orderSnap.data().status });
+  } catch (error) {
+    console.error('❌ Erro ao buscar status do pedido:', error);
+    res.status(500).json({ error: 'Falha ao buscar status do pedido.' });
+  }
+});
+
 // ROTA 3: WEBHOOK MERCADO PAGO
 app.post('/api/webhooks/mercadopago', async (req, res) => {
   res.status(200).send('OK');
