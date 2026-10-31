@@ -152,19 +152,19 @@
           <p class="text-xs text-gray-500">Gira os pagamentos, status logístico e datas das encomendas.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <select id="filterDate" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterDate" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Data: Todas</option>
             <option value="today">Hoje</option>
             <option value="week">Últimos 7 dias</option>
             <option value="month">Últimos 30 dias</option>
           </select>
-          <select id="filterPayment" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterPayment" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Pagamento: Todos</option>
             <option value="Pago">Apenas Pagos</option>
             <option value="Pendente">Apenas Pendentes</option>
             <option value="Cancelado">Apenas Cancelados</option>
           </select>
-          <select id="filterDelivery" onchange="renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+          <select id="filterDelivery" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Envio: Todos</option>
             <option value="Recebido">Pedido Recebido</option>
             <option value="Preparando">Em Separação</option>
@@ -256,9 +256,8 @@
     let db = null;
     let ordersList = [];
     
-    let lastOrderDoc = null;
+    let visibleOrdersCount = 10;
     const ORDERS_PER_PAGE = 10;
-    let hasMoreOrders = true;
 
     document.addEventListener('DOMContentLoaded', () => {
       initFirebase();
@@ -326,7 +325,7 @@
       document.getElementById('loginModal').classList.remove('hidden');
     }
 
-    async function loadOrdersFromCloud(isLoadMore = false) {
+    async function loadOrdersFromCloud() {
       const container = document.getElementById('adminOrdersContainer');
       
       if (!db) {
@@ -335,53 +334,44 @@
         return;
       }
 
-      if (!isLoadMore) {
-        container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
-        lastOrderDoc = null;
-        ordersList = [];
-        hasMoreOrders = true;
-      } else {
-        const btn = document.getElementById('loadMoreOrdersBtn');
-        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando...`;
-      }
+      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Sincronizando pedidos com o Firebase...</p></div>`;
 
       try {
-        let query = db.collection('orders').orderBy('createdAt', 'desc').limit(ORDERS_PER_PAGE);
+        const snapshot = await db.collection('orders').get();
         
-        if (isLoadMore && lastOrderDoc) {
-          query = query.startAfter(lastOrderDoc);
-        }
-
-        const snapshot = await query.get();
-        
-        if (snapshot.empty) {
-          hasMoreOrders = false;
-          renderOrdersTable();
-          return;
-        }
-
-        lastOrderDoc = snapshot.docs[snapshot.docs.length - 1];
-        hasMoreOrders = snapshot.docs.length === ORDERS_PER_PAGE;
-
+        let tempOrders = [];
         snapshot.forEach(doc => {
-          if (!ordersList.some(o => o.id === doc.id)) {
-            ordersList.push({ id: doc.id, ...doc.data() });
-          }
+          tempOrders.push({ id: doc.id, ...doc.data() });
         });
 
+        tempOrders.sort((a, b) => {
+          let timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+          let timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        ordersList = tempOrders;
         localStorage.setItem('malala_orders', JSON.stringify(ordersList));
         renderOrdersTable();
       } catch (err) {
         console.error("❌ Erro ao buscar pedidos do Firebase:", err);
-        if (!isLoadMore) {
-          try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
-          renderOrdersTable();
-        }
+        try { ordersList = JSON.parse(localStorage.getItem('malala_orders') || '[]'); } catch(e){}
+        renderOrdersTable();
       }
     }
 
     function loadOrders() {
+      resetPagination();
       loadOrdersFromCloud();
+    }
+
+    function resetPagination() {
+      visibleOrdersCount = ORDERS_PER_PAGE;
+    }
+
+    function loadMoreOrders() {
+      visibleOrdersCount += ORDERS_PER_PAGE;
+      renderOrdersTable();
     }
 
     function switchTab(tab) {
@@ -475,7 +465,10 @@
         return;
       }
 
-      let html = filtered.map(ord => {
+      // Paginação por lotes (exibe até visibleOrdersCount)
+      const paginatedOrders = filtered.slice(0, visibleOrdersCount);
+
+      let html = paginatedOrders.map(ord => {
         const payer = ord.payer || {};
         const payStatus = ord.status || 'Pendente';
         const delStatus = ord.deliveryStatus || 'Recebido';
@@ -534,14 +527,18 @@
           </div>
         `;
       }).join('');
-      
-      if (hasMoreOrders && filterDate === 'all' && filterPay === 'all' && filterDel === 'all') {
-         html += `<div class="flex justify-center mt-4 pt-4 border-t border-gray-200">
-                    <button id="loadMoreOrdersBtn" onclick="loadOrdersFromCloud(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center">
-                       <i class="fa-solid fa-plus text-[#FF5500] mr-2"></i> Carregar Mais Pedidos
-                    </button>
-                  </div>`;
+
+      // Botão "Carregar Mais" se houver mais pedidos filtrados para exibir
+      if (visibleOrdersCount < filtered.length) {
+        html += `
+          <div class="flex justify-center mt-6 pt-4 border-t border-gray-200">
+            <button onclick="loadMoreOrders()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-6 py-3 rounded-xl transition-all border border-gray-200 shadow-sm flex items-center gap-2">
+               <i class="fa-solid fa-plus text-[#FF5500]"></i> Carregar Mais Pedidos (${filtered.length - visibleOrdersCount} restantes)
+            </button>
+          </div>
+        `;
       }
+      
       container.innerHTML = html;
     }
 
@@ -606,8 +603,6 @@
         return arr; 
     }
     
-    function openAddPointModal() { ... } // helper
-
     function openAddProductModal() { 
         document.getElementById('editProductId').value = ''; 
         document.getElementById('formModalTitle').innerText = 'Novo Produto';
@@ -651,7 +646,6 @@
         document.getElementById('formImage').value = p.image;
         
         if (p.images && p.images.length > 0) p.images.forEach(imgUrl => addExtraImageField(imgUrl));
-        document.getElementById('productFormModal').classList.add('hidden'); // fix
         document.getElementById('productFormModal').classList.remove('hidden');
     }
 
