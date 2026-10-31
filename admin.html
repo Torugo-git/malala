@@ -615,7 +615,7 @@
     
     function saveProduct(e) {
       e.preventDefault();
-      const id = document.getElementById('editProductId'].value;
+      const id = document.getElementById('editProductId').value;
       const data = {
         title: document.getElementById('formTitle').value, category: document.getElementById('formCategory').value,
         price: parseFloat(document.getElementById('formPrice').value), stock: parseInt(document.getElementById('formStock').value),
