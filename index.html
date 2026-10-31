@@ -26,9 +26,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <!-- Mercado Pago SDK V2 -->
-  <script src="https://sdk.mercadopago.com/js/v2"></script>
-
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -510,48 +507,10 @@
               <label class="border-2 border-gray-200 p-3 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-gray-300">
                 <input type="radio" name="payMethod" value="card" onchange="togglePayMethodUI('card')" class="text-[#FF5500]">
                 <div>
-                  <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-credit-card text-blue-600"></i> Cartão</span>
-                  <span class="text-[10px] text-gray-500">Até 10x sem juros</span>
+                  <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-credit-card text-blue-600"></i> Pagar Online</span>
+                  <span class="text-[10px] text-gray-500">via Mercado Pago</span>
                 </div>
               </label>
-            </div>
-          </div>
-
-          <!-- DADOS DO CARTÃO COM VALIDAÇÃO LUHN + TRAVA ANTI-ZEROS -->
-          <div id="cardFieldsContainer" class="hidden space-y-3 pt-2 border-t border-gray-100">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Número do Cartão</label>
-              <div class="relative">
-                <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 pl-3 pr-12 rounded-xl focus:outline-none focus:border-[#FF5500]">
-                <div id="cardBrandIcon" class="absolute right-3 top-2.5 text-gray-400 text-base font-bold flex items-center">
-                  <i class="fa-regular fa-credit-card"></i>
-                </div>
-              </div>
-              <p id="cardErrorMsg" class="text-[10px] text-red-500 font-bold mt-1 hidden">Cartão de crédito inválido</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Validade (MM/AA)</label>
-                <input type="text" id="cardExpiry" placeholder="12/28" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">CVV</label>
-                <input type="text" id="cardCvv" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nome Impresso no Cartão</label>
-              <input type="text" id="cardHolderName" placeholder="NOME COMO NO CARTÃO" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
-            </div>
-
-            <!-- SELETOR DE PARCELAS -->
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nº de Parcelas</label>
-              <select id="cardInstallments" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500] font-bold text-gray-800">
-                <option value="1">1x à vista</option>
-              </select>
             </div>
           </div>
 
@@ -963,57 +922,6 @@
         else if (val.length > 3) val = val.substring(0,3) + '.' + val.substring(3,6);
         e.target.value = val;
       }
-
-      // Detecção de Cartão, Bandeira e Validação Luhn em tempo real com trava anti-zeros
-      if (e.target.id === 'cardNumber') {
-          let rawVal = e.target.value.replace(/\D/g, '');
-          let isAmex = rawVal.startsWith('34') || rawVal.startsWith('37');
-          let maxLength = isAmex ? 15 : 16;
-          let val = rawVal.substring(0, maxLength);
-
-          if (isAmex) {
-              let parts = [];
-              if (val.length > 0) parts.push(val.substring(0, 4));
-              if (val.length > 4) parts.push(val.substring(4, 10));
-              if (val.length > 10) parts.push(val.substring(10, 15));
-              e.target.value = parts.join(' ');
-          } else {
-              e.target.value = val.match(/.{1,4}/g)?.join(' ') || val;
-          }
-
-          const brandIcon = document.getElementById('cardBrandIcon');
-          const errorMsg = document.getElementById('cardErrorMsg');
-          const inputField = document.getElementById('cardNumber');
-
-          if (val.startsWith('4')) {
-              brandIcon.innerHTML = '<i class="fa-brands fa-cc-visa text-blue-600 text-lg"></i>';
-          } else if (/^5[1-5]/.test(val) || /^2[2-7]/.test(val)) {
-              brandIcon.innerHTML = '<i class="fa-brands fa-cc-mastercard text-orange-600 text-lg"></i>';
-          } else if (isAmex) {
-              brandIcon.innerHTML = '<i class="fa-brands fa-cc-amex text-blue-400 text-lg"></i>';
-          } else {
-              brandIcon.innerHTML = '<i class="fa-regular fa-credit-card"></i>';
-          }
-
-          if (val.length === maxLength) {
-              if (!isValidLuhn(val)) {
-                  errorMsg.classList.remove('hidden');
-                  inputField.classList.add('border-red-500', 'bg-red-50');
-              } else {
-                  errorMsg.classList.add('hidden');
-                  inputField.classList.remove('border-red-500', 'bg-red-50');
-              }
-          } else {
-              errorMsg.classList.add('hidden');
-              inputField.classList.remove('border-red-500', 'bg-red-50');
-          }
-      }
-
-      if (e.target.id === 'cardExpiry') {
-          let val = e.target.value.replace(/\D/g, '').substring(0,4);
-          if (val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
-          e.target.value = val;
-      }
     });
 
     async function buscarEndereco(cepOriginal) {
@@ -1051,34 +959,6 @@
         return true;
     }
 
-    function isValidLuhn(cardNumber) {
-        let cleanCard = (cardNumber + '').replace(/\D/g, '');
-
-        // Trava rigorosa: rejeita se for menor que 13 dígitos ou se forem todos números iguais (ex: 0000...)
-        if (cleanCard.length < 13 || /^(\d)\1+$/.test(cleanCard) || /^0+$/.test(cleanCard)) {
-            return false;
-        }
-
-        let sum = 0;
-        let isSecond = false;
-
-        for (let i = cleanCard.length - 1; i >= 0; i--) {
-            let digit = parseInt(cleanCard.charAt(i), 10);
-
-            if (isSecond) {
-                digit *= 2;
-                if (digit > 9) {
-                    digit -= 9;
-                }
-            }
-
-            sum += digit;
-            isSecond = !isSecond;
-        }
-
-        return sum % 10 === 0;
-    }
-
     function openMercadoPagoCheckout() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
       toggleCart(false);
@@ -1095,21 +975,6 @@
       const total = cart.reduce((a,b) => a + (b.price * b.qty), 0);
       document.getElementById('checkoutTotalDisplay').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
 
-      const selectInstallments = document.getElementById('cardInstallments');
-      let installmentsHtml = '';
-      for (let i = 1; i <= 10; i++) {
-          let baseInstallmentValue = Math.floor((total / i) * 100) / 100;
-          let remainder = Math.round((total - (baseInstallmentValue * i)) * 100) / 100;
-
-          if (remainder > 0 && i > 1) {
-              let firstInstallment = baseInstallmentValue + remainder;
-              installmentsHtml += `<option value="${i}">${i}x sem juros (1x R$ ${firstInstallment.toFixed(2).replace('.', ',')} + ${i-1}x R$ ${baseInstallmentValue.toFixed(2).replace('.', ',')})</option>`;
-          } else {
-              installmentsHtml += `<option value="${i}">${i}x de R$ ${baseInstallmentValue.toFixed(2).replace('.', ',')} sem juros</option>`;
-          }
-      }
-      selectInstallments.innerHTML = installmentsHtml;
-
       document.getElementById('checkoutFormStep').classList.remove('hidden');
       document.getElementById('pixResultStep').classList.add('hidden');
       document.getElementById('checkoutModal').classList.remove('hidden');
@@ -1121,12 +986,11 @@
 
     function togglePayMethodUI(method) {
       selectedPayMethod = method;
-      document.getElementById('cardFieldsContainer').classList.toggle('hidden', method !== 'card');
       const submitBtn = document.getElementById('paySubmitBtn');
       if (method === 'pix') {
         submitBtn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
       } else {
-        submitBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+        submitBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar Online via Mercado Pago';
       }
     }
 
@@ -1138,29 +1002,6 @@
           alert('Por favor, informe um CPF válido.');
           document.getElementById('payCpf').focus();
           return;
-      }
-
-      // TRAVA DE SEGURANÇA RIGOROSA
-      if (selectedPayMethod === 'card') {
-          const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
-          const cardCvv = document.getElementById('cardCvv').value.trim();
-          const cardName = document.getElementById('cardHolderName').value.trim();
-
-          if (!isValidLuhn(rawCardNum)) {
-              alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
-              document.getElementById('cardNumber').focus();
-              return;
-          }
-          if (cardCvv.length < 3) {
-              alert('Por favor, informe um CVV válido.');
-              document.getElementById('cardCvv').focus();
-              return;
-          }
-          if (!cardName || cardName.length < 3) {
-              alert('Por favor, informe o nome impresso no cartão corretamente.');
-              document.getElementById('cardHolderName').focus();
-              return;
-          }
       }
 
       const firstName = document.getElementById('payFirstName').value;
@@ -1230,7 +1071,7 @@
               if (selectedPayMethod === 'pix') {
                 btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
               } else {
-                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar Online via Mercado Pago';
               }
               btn.classList.replace('bg-gray-400', 'bg-emerald-600');
               btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
@@ -1243,52 +1084,10 @@
 
         } else {
           try {
-            const mp = new MercadoPago('TEST-86b864a7-8a14-4a47-a7eb-944a9debd7e9');
-
-            const rawCardNum = document.getElementById('cardNumber').value.replace(/\D/g, '');
-            
-            if (!rawCardNum || rawCardNum.length < 13) {
-              alert('Cartão de crédito inválido. Por favor, verifique o número informado.');
-              throw new Error("Número do cartão inválido");
-            }
-
-            // BYPASS DE SEGURANÇA: Identificação manual da bandeira sem chamar a API que dá erro 404
-            let paymentMethodId = 'visa'; 
-            if (/^5[1-5]/.test(rawCardNum) || /^2[2-7]/.test(rawCardNum)) paymentMethodId = 'master';
-            else if (rawCardNum.startsWith('34') || rawCardNum.startsWith('37')) paymentMethodId = 'amex';
-            else if (rawCardNum.startsWith('4')) paymentMethodId = 'visa';
-            else if (/^38/.test(rawCardNum) || /^606282/.test(rawCardNum)) paymentMethodId = 'hipercard';
-            else if (/^6(?:011|5)/.test(rawCardNum)) paymentMethodId = 'discover';
-            else if (/^3(?:0[0-5]|[68][0-9])/.test(rawCardNum)) paymentMethodId = 'diners';
-
-            // Criação do token sem o parâmetro "bin"
-            const cardTokenData = {
-              cardNumber: rawCardNum,
-              cardholderName: document.getElementById('cardHolderName').value.trim(),
-              cardExpirationMonth: document.getElementById('cardExpiry').value.split('/')[0],
-              cardExpirationYear: "20" + document.getElementById('cardExpiry').value.split('/')[1],
-              securityCode: document.getElementById('cardCvv').value.trim(),
-              identificationType: payerData.identification.type,
-              identificationNumber: payerData.identification.number
-            };
-
-            const tokenResponse = await mp.createCardToken(cardTokenData);
-
-            if (tokenResponse.error) {
-               alert('Erro ao processar cartão. Verifique os dados inseridos.');
-               throw new Error(JSON.stringify(tokenResponse.error));
-            }
-
-            const res = await fetch(`${backendUrl}/api/payments/card`, {
+            const res = await fetch(`${backendUrl}/api/payments/checkout-pro`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                token: tokenResponse.id,
-                payment_method_id: paymentMethodId,
-                installments: parseInt(document.getElementById('cardInstallments').value || 1),
-                payer: payerData,
-                items: formattedItems
-              }),
+              body: JSON.stringify({ items: formattedItems, payer: payerData }),
               signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -1298,12 +1097,6 @@
                 alert(`Ops! ${errorData.error}`);
                 throw new Error("Estoque insuficiente");
             }
-            
-            if (res.status === 400) {
-                const errorData = await res.json();
-                alert(`Pagamento recusado: ${errorData.status_detail || 'Verifique os dados do cartão e tente novamente.'}`);
-                throw new Error("Pagamento recusado pelo Mercado Pago.");
-            }
 
             if (!res.ok) {
                 throw new Error(`Erro no servidor: HTTP ${res.status}`);
@@ -1311,12 +1104,11 @@
 
             const data = await res.json();
 
-            if (data.success) {
-              showToast('Pagamento Aprovado!', 'Seu pedido foi pago com sucesso.');
-              enviarEmailConfirmacaoEmailJS(payerData.email, data.orderId || ('ORD-' + Math.floor(100000 + Math.random() * 900000)), formattedItems);
-              cart = []; updateCart();
-              closeCheckoutModal();
+            if (data.init_point) {
+              window.location.href = data.init_point;
               return;
+            } else {
+              throw new Error("URL de pagamento não retornada.");
             }
           } catch(fetchErr) {
             clearTimeout(timeoutId);
@@ -1332,7 +1124,7 @@
               alert('O servidor demorou muito para responder. Por favor, tente novamente.');
               throw new Error("Timeout na comunicação com o servidor.");
             }
-            console.warn('Erro na requisição de Cartão:', fetchErr);
+            console.warn('Erro na requisição de Cartão (Checkout Pro):', fetchErr);
             throw fetchErr;
           }
         }
