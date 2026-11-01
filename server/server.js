@@ -207,9 +207,9 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
           }
         },
         back_urls: {
-          success: `${frontendUrl}/minha-conta.html`,
-          failure: `${frontendUrl}/index.html`,
-          pending: `${frontendUrl}/minha-conta.html`
+          success: `https://www.malalastore.com.br/minha-conta.html`,
+          failure: `https://www.malalastore.com.br/index.html`,
+          pending: `https://www.malalastore.com.br/minha-conta.html`
         },
         auto_return: 'approved',
         external_reference: orderId,
