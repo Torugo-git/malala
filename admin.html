@@ -269,7 +269,7 @@
       }
 
       firebase.auth().onAuthStateChanged((user) => {
-        if (user && user.email === 'victorhugopenny@gmail.com') {
+        if (user && user.email === 'malalastore.pedidos@gmail.com') {
           sessionStorage.setItem('malala_logged', 'true');
           document.getElementById('loginModal').classList.add('hidden');
           if (ordersList.length === 0) loadOrdersFromCloud();
@@ -305,7 +305,7 @@
     async function handleLogin(e) {
       e.preventDefault();
       const pwd = document.getElementById('adminPassword').value;
-      const adminEmail = 'victorhugopenny@gmail.com';
+      const adminEmail = 'malalastore.pedidos@gmail.com';
 
       try {
         await firebase.auth().signInWithEmailAndPassword(adminEmail, pwd);

@@ -4,7 +4,7 @@ service cloud.firestore {
     
     // Função que define quem é o dono (Admin)
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'victorhugopenny@gmail.com';
+      return request.auth != null && request.auth.token.email == 'malalastore.pedidos@gmail.com';
     }
 
     // Regras do Catálogo
