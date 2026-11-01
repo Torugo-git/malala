@@ -754,18 +754,7 @@
     let isRegisterMode = false;
     let selectedPayMethod = 'pix';
 
-    function checkDemoSession() {
-      const demoUserStr = localStorage.getItem('malala_demo_user');
-      if (demoUserStr) {
-        try {
-          currentUser = JSON.parse(demoUserStr);
-          document.getElementById('authBtnLabel').innerText = currentUser.displayName || currentUser.email.split('@')[0];
-        } catch(e) {}
-      }
-    }
-
     function initFirebaseAuth() {
-      checkDemoSession();
       if (firebase.apps && firebase.apps.length) {
         try {
           auth = firebase.auth();

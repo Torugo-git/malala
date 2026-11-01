@@ -47,6 +47,16 @@ const client = new MercadoPagoConfig({
 const paymentClient = new Payment(client);
 const preferenceClient = new Preference(client);
 
+// VALIDAÇÃO DE CPF (MÓDULO 11)
+function isValidCPF(cpf) {
+    if (typeof cpf !== 'string') return false;
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+    const cpfNumbers = cpf.split('').map(el => +el);
+    const rest = (count) => (cpfNumbers.slice(0, count - 12).reduce((soma, el, index) => (soma + el * (count - index)), 0) * 10) % 11 % 10;
+    return rest(10) === cpfNumbers[9] && rest(11) === cpfNumbers[10];
+}
+
 // FUNÇÃO DE VALIDAÇÃO DUPLA DE ESTOQUE
 async function validateStockBeforeCheckout(requestedItems) {
     if (!db) throw new Error("Banco de dados indisponível.");
@@ -80,6 +90,12 @@ app.post('/api/payments/pix', async (req, res) => {
   try {
     const { items, payer, shippingAddress } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
+
+    if (payer && payer.identification && payer.identification.type === 'CPF') {
+      if (!isValidCPF(payer.identification.number)) {
+        return res.status(400).json({ error: 'CPF inválido.' });
+      }
+    }
 
     const stockValidation = await validateStockBeforeCheckout(items);
     if (!stockValidation.valid) {
@@ -156,6 +172,12 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
   try {
     const { items, payer, shippingAddress } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
+
+    if (payer && payer.identification && payer.identification.type === 'CPF') {
+      if (!isValidCPF(payer.identification.number)) {
+        return res.status(400).json({ error: 'CPF inválido.' });
+      }
+    }
 
     const stockValidation = await validateStockBeforeCheckout(items);
     if (!stockValidation.valid) {
