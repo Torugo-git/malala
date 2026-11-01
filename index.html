@@ -979,11 +979,11 @@
 
         if (data.status === 'Pago') {
           clearInterval(pixPollingInterval);
-          window.location.href = 'minha-conta.html';
+          window.location.href = 'https://www.malalastore.com.br/minha-conta.html';
         } else if (data.status === 'Cancelado') {
            clearInterval(pixPollingInterval);
            alert('Este pedido foi cancelado.');
-           window.location.href = 'index.html';
+           window.location.href = 'https://www.malalastore.com.br/index.html';
         }
       } catch (err) {
         console.warn('Erro ao verificar status do PIX:', err);
