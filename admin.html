@@ -151,7 +151,8 @@
           <h3 class="font-extrabold text-gray-900 text-base">Acompanhamento de Vendas & Clientes</h3>
           <p class="text-xs text-gray-500">Gira os pagamentos, status logístico e datas das encomendas.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <input type="text" id="orderSearch" onkeyup="resetPagination(); renderOrdersTable()" placeholder="Buscar nome, CPF, ID..." class="bg-gray-50 border border-gray-200 text-xs py-2 px-4 rounded-xl w-full sm:w-48 focus:outline-none focus:border-[#FF5500]">
           <select id="filterDate" onchange="resetPagination(); renderOrdersTable()" class="bg-gray-50 border border-gray-200 text-xs text-gray-700 font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
             <option value="all">Data: Todas</option>
             <option value="today">Hoje</option>
@@ -173,6 +174,31 @@
           </select>
           <button onclick="loadOrders()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2">
             <i class="fa-solid fa-arrows-rotate text-[#FF5500]"></i> Atualizar
+          </button>
+        </div>
+      </div>
+
+      <div id="bulkActionsPanel" class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="selectAllOrders" onchange="toggleSelectAllOrders()" class="w-4 h-4 text-[#FF5500] rounded focus:ring-[#FF5500]">
+          <label for="selectAllOrders" class="text-xs font-bold text-gray-700 cursor-pointer">Selecionar Todos na Tela</label>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <span class="text-[10px] font-bold text-gray-500 uppercase">Ação em Lote:</span>
+          <select id="bulkActionType" class="text-xs bg-gray-50 border border-gray-200 py-1.5 px-2 rounded-lg focus:outline-none focus:border-[#FF5500]">
+            <option value="">Selecione...</option>
+            <option disabled>--- PAGAMENTO ---</option>
+            <option value="pay_Pago">Marcar como Pago</option>
+            <option value="pay_Pendente">Marcar como Pendente</option>
+            <option value="pay_Cancelado">Marcar como Cancelado</option>
+            <option disabled>--- ENVIO ---</option>
+            <option value="del_Recebido">1. Recebido</option>
+            <option value="del_Preparando">2. Preparando</option>
+            <option value="del_Caminho">3. A Caminho</option>
+            <option value="del_Entregue">4. Entregue</option>
+          </select>
+          <button onclick="applyBulkAction(event)" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase transition-all shadow-sm">
+            Aplicar
           </button>
         </div>
       </div>
@@ -428,13 +454,140 @@
       if(p) { p.stock = newStock; saveToLocalStorage(); }
     }
 
+    let selectedOrderIds = [];
+
+    function toggleSelectAllOrders() {
+      const isChecked = document.getElementById('selectAllOrders').checked;
+      const checkboxes = document.querySelectorAll('.order-checkbox');
+      selectedOrderIds = [];
+      checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        if(isChecked) selectedOrderIds.push(cb.value);
+      });
+    }
+
+    function toggleOrderSelection(orderId, isChecked) {
+      if(isChecked) {
+        if(!selectedOrderIds.includes(orderId)) selectedOrderIds.push(orderId);
+      } else {
+        selectedOrderIds = selectedOrderIds.filter(id => id !== orderId);
+      }
+      const allCheckboxes = document.querySelectorAll('.order-checkbox');
+      const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+      document.getElementById('selectAllOrders').checked = allCheckboxes.length > 0 && allChecked;
+    }
+
+    async function applyBulkAction(event) {
+      if(selectedOrderIds.length === 0) return alert('Selecione pelo menos um pedido.');
+      const action = document.getElementById('bulkActionType').value;
+      if(!action) return alert('Selecione uma ação.');
+
+      const isPayment = action.startsWith('pay_');
+      const newStatus = action.split('_')[1];
+
+      const confirmMsg = `Tem certeza que deseja alterar o status de ${isPayment ? 'pagamento' : 'envio'} para "${newStatus}" em ${selectedOrderIds.length} pedidos?`;
+      if(!confirm(confirmMsg)) return;
+
+      const btn = event ? event.target : document.querySelector('button[onclick="applyBulkAction(event)"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+
+      for (let orderId of selectedOrderIds) {
+        if (isPayment) await updatePaymentStatus(orderId, newStatus, true);
+        else await updateDeliveryStatus(orderId, newStatus, true);
+      }
+
+      document.getElementById('selectAllOrders').checked = false;
+      selectedOrderIds = [];
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      alert('Ação em lote aplicada com sucesso!');
+      renderOrdersTable();
+    }
+
+    async function updatePaymentStatus(orderId, newStatus, skipRender = false) {
+      const ord = ordersList.find(o => String(o.id) === String(orderId));
+      if (ord) { ord.status = newStatus; localStorage.setItem('malala_orders', JSON.stringify(ordersList)); }
+      if (db) {
+        try { await db.collection('orders').doc(String(orderId)).update({ status: newStatus }); }
+        catch (err) { console.warn("Atualizado localmente."); }
+      }
+      if(!skipRender) renderOrdersTable();
+    }
+
+    async function updateDeliveryStatus(orderId, newStatus, skipRender = false) {
+      const ord = ordersList.find(o => String(o.id) === String(orderId));
+      if (ord) { ord.deliveryStatus = newStatus; localStorage.setItem('malala_orders', JSON.stringify(ordersList)); }
+      if (db) {
+        try { await db.collection('orders').doc(String(orderId)).update({ deliveryStatus: newStatus }); }
+        catch (err) { console.warn("Atualizado localmente."); }
+      }
+      if(!skipRender) renderOrdersTable();
+    }
+
+    function printOrderLabel(orderId) {
+      const ord = ordersList.find(o => String(o.id) === String(orderId));
+      if(!ord) return;
+      const payer = ord.payer || {};
+      const addr = payer.address || {};
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Etiqueta de Envio - ${orderId}</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; max-width: 400px; border: 2px solid #000; margin: 20px; }
+              h2 { margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+              p { margin: 5px 0; font-size: 14px; }
+              .bold { font-weight: bold; }
+              .footer { margin-top: 20px; font-size: 10px; color: #555; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <h2>DESTINATÁRIO</h2>
+            <p class="bold">${payer.name || 'Cliente'}</p>
+            <p>CPF: ${payer.cpf || 'Não informado'}</p>
+            <br>
+            <p>${addr.street || ''}, ${addr.number || ''}</p>
+            <p>${addr.neighborhood || ''}</p>
+            <p class="bold">${addr.city || ''}</p>
+            <p class="bold">CEP: ${addr.cep || ''}</p>
+
+            <div class="footer">
+              Pedido: ${orderId} - Malala Store
+            </div>
+
+            <script>
+              window.onload = function() { window.print(); window.close(); }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
     function renderOrdersTable() {
+      const search = document.getElementById('orderSearch').value.toLowerCase();
       const filterPay = document.getElementById('filterPayment').value;
       const filterDel = document.getElementById('filterDelivery').value;
       const filterDate = document.getElementById('filterDate').value;
       const now = new Date();
 
       let filtered = ordersList;
+
+      if (search) {
+        filtered = filtered.filter(o => {
+          const payer = o.payer || {};
+          const addr = payer.address || {};
+          const itemsStr = (o.items || []).map(i => i.title).join(' ').toLowerCase();
+
+          const searchStr = `${o.id || ''} ${payer.name || ''} ${payer.email || ''} ${payer.cpf || ''} ${addr.street || ''} ${addr.neighborhood || ''} ${addr.city || ''} ${addr.cep || ''} ${itemsStr}`.toLowerCase();
+          return searchStr.includes(search);
+        });
+      }
+
       if(filterPay !== 'all') filtered = filtered.filter(o => (o.status || 'Pendente') === filterPay);
       if(filterDel !== 'all') filtered = filtered.filter(o => (o.deliveryStatus || 'Recebido') === filterDel);
       
@@ -489,10 +642,13 @@
         const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${i.quantity}x ${i.title}</span><span class="text-gray-600 font-mono">R$ ${((i.price || 0)*i.quantity).toFixed(2).replace('.',',')}</span></div>`).join('');
         const totalVal = ord.total || ord.totalAmount || 0;
 
+        const isChecked = selectedOrderIds.includes(ord.id) ? 'checked' : '';
+
         return `
           <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div class="flex justify-between items-center pb-3 border-b border-gray-100">
               <div class="flex items-center gap-3">
+                <input type="checkbox" value="${ord.id}" ${isChecked} onchange="toggleOrderSelection('${ord.id}', this.checked)" class="order-checkbox w-4 h-4 text-[#FF5500] rounded focus:ring-[#FF5500] mr-2">
                 <span class="font-mono text-xs font-black bg-gray-100 px-2 py-1 rounded-md text-gray-700">${ord.id}</span>
                 <span class="text-xs font-bold text-gray-900">${payer.name || payer.email || 'Cliente'}</span>
                 <span class="text-[10px] text-gray-400 ml-2 hidden sm:inline"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
@@ -520,8 +676,16 @@
               </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><p class="text-[10px] font-bold text-gray-400 mb-1">ENDEREÇO</p><p class="text-xs bg-gray-50 p-2 rounded-lg border border-gray-100">${payer.address?.street || 'N/A'}, ${payer.address?.number || 'N/A'} - ${payer.address?.city || 'N/A'}</p></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+              <div>
+                <p class="text-[10px] font-bold text-gray-400 mb-1">ENDEREÇO</p>
+                <div class="text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 flex justify-between items-start">
+                  <span>${payer.address?.street || 'N/A'}, ${payer.address?.number || 'N/A'}<br>${payer.address?.neighborhood || ''} - ${payer.address?.city || 'N/A'}<br>CEP: ${payer.address?.cep || 'N/A'}</span>
+                  <button onclick="printOrderLabel('${ord.id}')" class="text-[#FF5500] hover:text-[#E64A00] transition-colors p-1" title="Imprimir Etiqueta de Envio">
+                    <i class="fa-solid fa-print"></i>
+                  </button>
+                </div>
+              </div>
               <div><p class="text-[10px] font-bold text-gray-400 mb-1">ITENS</p><div class="bg-gray-50 p-2 rounded-lg border border-gray-100 space-y-1">${itemsHtml}</div></div>
             </div>
           </div>
