@@ -427,25 +427,6 @@
       document.getElementById('dashVendas').innerText = vendas;
     }
 
-    async function updateDeliveryStatus(orderId, newStatus) {
-      const ord = ordersList.find(o => String(o.id) === String(orderId));
-      if (ord) { ord.deliveryStatus = newStatus; localStorage.setItem('malala_orders', JSON.stringify(ordersList)); }
-      if (db) {
-        try { await db.collection('orders').doc(String(orderId)).update({ deliveryStatus: newStatus }); }
-        catch (err) { console.warn("Atualizado localmente."); }
-      }
-      renderOrdersTable();
-    }
-
-    async function updatePaymentStatus(orderId, newStatus) {
-      const ord = ordersList.find(o => String(o.id) === String(orderId));
-      if (ord) { ord.status = newStatus; localStorage.setItem('malala_orders', JSON.stringify(ordersList)); }
-      if (db) {
-        try { await db.collection('orders').doc(String(orderId)).update({ status: newStatus }); }
-        catch (err) { console.warn("Atualizado localmente."); }
-      }
-      renderOrdersTable();
-    }
 
     function updateStockInline(id, newStockStr) {
       const newStock = parseInt(newStockStr, 10);
