@@ -704,7 +704,7 @@
 
       tbody.innerHTML = filtered.map(p => `
         <tr class="hover:bg-gray-50/80 transition-colors border-b border-gray-50">
-          <td class="p-3 flex items-center gap-3"><img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200"><div><p class="font-bold text-gray-900">${p.title}</p></div></td>
+          <td class="p-3 flex items-center gap-3"><img src="${p.image || ''}" class="w-10 h-10 object-cover rounded-lg border border-gray-200"><div><p class="font-bold text-gray-900">${p.title}</p></div></td>
           <td class="p-3 font-bold text-gray-700">${p.category}</td>
           <td class="p-3 text-center"><input type="number" onchange="updateStockInline(${p.id}, this.value)" value="${p.stock}" class="w-16 bg-white border border-gray-200 text-xs font-bold p-1.5 rounded focus:border-[#FF5500] focus:outline-none text-center shadow-sm"></td>
           <td class="p-3 font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.',',')}</td>
