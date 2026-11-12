@@ -8,7 +8,7 @@
   <title>MALALA STORE | Tecnologia • Beleza • Perfumes</title>
   <meta name="description" content="Sua loja referência em Tecnologia, Produtos de Beleza e Perfumaria Importada e Árabe. Vai comprando & recebendo com entrega rápida e segura.">
   <meta property="og:title" content="MALALA STORE | Produtos Exclusivos">
-  <meta property="og:description" content="Tecnologia, Beleza e Perfumaria Importada. Parcele em até 10x ou ganhe aprovação na hora no PIX.">
+  <meta property="og:description" content="Tecnologia, Beleza e Perfumaria Importada. Pagamento fácil no Cartão ou aprovação na hora no PIX.">
   <meta property="og:image" content="https://seusite.com/logo-banner.png">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#FF5500">
@@ -1381,7 +1381,6 @@
         const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
         const isConsult = !isOutOfStock && (Number(p.price || 0) === 0 || p.status === 'consulte');
         const cleanDesc = getCleanProductDescription(p);
-        const installmentVal = (Number(p.price || 0) / 10).toFixed(2).replace('.', ',');
         const safeTitle = String(p.title || '').replace(/'/g, "\\'");
 
         const stockBadge = isOutOfStock 
@@ -1397,7 +1396,7 @@
                  <div class="flex items-baseline">
                    ${formatLuxuryPriceHTML(p.price, 'card')}
                  </div>
-                 <span class="text-[10px] text-gray-500 font-medium block mt-0.5">10x de <strong class="text-gray-700">R$ ${installmentVal}</strong> s/ juros</span>
+                 <span class="text-[10px] text-gray-500 font-medium block mt-0.5"><i class="fa-solid fa-bolt text-[#FF5500] text-[9px]"></i> No PIX ou Cartão</span>
                </div>`;
 
         const mainActionButtonHTML = isOutOfStock
@@ -1487,7 +1486,7 @@
           paymentTagEl.className = "text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1";
           priceEl.innerHTML = `<span class="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">Sob Consulta</span>`;
           installmentIconEl.className = "fa-brands fa-whatsapp text-emerald-600 text-xs";
-          installmentsEl.innerText = "Consulte o valor atualizado e condições em até 10x";
+          installmentsEl.innerText = "Consulte o valor atualizado e condições pelo WhatsApp";
           addBtn.disabled = false; 
           addBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-base"></i> Consultar Valor no WhatsApp`;
           addBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-emerald-600/25";
@@ -1500,7 +1499,7 @@
           paymentTagEl.className = "text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1";
           priceEl.innerHTML = formatLuxuryPriceHTML(p.price, 'modal');
           installmentIconEl.className = "fa-regular fa-credit-card text-[#FF5500] text-xs";
-          installmentsEl.innerText = `Em até 10x de R$ ${(Number(p.price || 0) / 10).toFixed(2).replace('.', ',')} sem juros no cartão`;
+          installmentsEl.innerText = "Pagamento rápido via PIX ou Cartão de Crédito";
           addBtn.disabled = false; 
           addBtn.innerHTML = `<i class="fa-solid fa-bag-shopping text-sm"></i> Adicionar ao Carrinho`;
           addBtn.className = "w-full bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-[#FF5500]/25";
