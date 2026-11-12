@@ -352,7 +352,7 @@
       </div>
     </div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left text-[10px] text-gray-500">
-      <p>&copy; 2026 MALALA STORE LTDA. Todos os direitos reservados.</p>
+      <p>© 2026 MALALA STORE LTDA. Todos os direitos reservados.</p>
       <p class="flex items-center gap-1.5 font-bold">Ambiente 100% Seguro <i class="fa-solid fa-lock text-emerald-500"></i></p>
     </div>
   </footer>
@@ -595,33 +595,34 @@
   <div id="productModal" class="fixed inset-0 z-50 hidden overflow-y-auto p-3 sm:p-4 md:p-6 flex items-center justify-center">
     <div onclick="closeProductModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden my-auto max-h-[90vh] sm:max-h-[85vh] z-10">
-      <button onclick="closeProductModal()" class="absolute top-3 right-3 z-20 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-all border border-gray-100">
-        <i class="fa-solid fa-xmark text-base"></i>
+      <button onclick="closeProductModal()" class="absolute top-3.5 right-3.5 z-20 bg-white/90 hover:bg-gray-900 text-gray-700 hover:text-white w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all border border-gray-200/80">
+        <i class="fa-solid fa-xmark text-sm"></i>
       </button>
 
       <!-- SEÇÃO DA IMAGEM E MINIATURAS -->
-      <div class="md:w-1/2 bg-gray-50 relative flex flex-col shrink-0">
-        <div class="h-52 sm:h-72 relative">
-            <img id="modalProductImg" src="" alt="" class="w-full h-full object-cover transition-opacity duration-300">
-            <span id="modalProductBadge" class="absolute top-4 left-4 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
+      <div class="md:w-1/2 bg-white relative flex flex-col justify-center shrink-0 border-b md:border-b-0 md:border-r border-gray-100">
+        <div class="h-60 sm:h-80 relative flex items-center justify-center p-4">
+            <img id="modalProductImg" src="" alt="" class="max-w-full max-h-full object-contain transition-opacity duration-300">
+            <span id="modalProductBadge" class="hidden absolute top-4 left-4 bg-gray-900 text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow"></span>
         </div>
         
-        <div id="modalThumbnails" class="flex items-center gap-2 p-3 overflow-x-auto scrollbar-none bg-white border-t border-gray-100">
+        <div id="modalThumbnails" class="flex items-center gap-2 p-3 overflow-x-auto scrollbar-none bg-gray-50 border-t border-gray-100">
             <!-- Miniaturas -->
         </div>
       </div>
 
-      <div class="md:w-1/2 p-5 sm:p-6 flex flex-col justify-between overflow-y-auto max-h-[calc(90vh-13rem)] md:max-h-[85vh]">
+      <div class="md:w-1/2 p-5 sm:p-6 flex flex-col justify-between overflow-y-auto max-h-[calc(90vh-15rem)] md:max-h-[85vh]">
         <div>
-          <div class="flex items-center justify-between gap-2">
+          <!-- pr-10 evita que o botão X sobreponha a badge de ESTOQUE -->
+          <div class="flex items-center justify-between gap-2 pr-10">
               <span id="modalProductCategory" class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]"></span>
               <span id="modalProductStock" class="text-[10px] font-bold px-2.5 py-1 rounded-full"></span>
           </div>
           
-          <h3 id="modalProductTitle" class="text-lg sm:text-xl font-extrabold text-gray-900 mt-1"></h3>
-          <p id="modalProductDesc" class="text-xs text-gray-600 mt-3 leading-relaxed whitespace-pre-line"></p>
+          <h3 id="modalProductTitle" class="text-lg sm:text-xl font-extrabold text-gray-900 mt-1.5 leading-snug"></h3>
+          <p id="modalProductDesc" class="text-xs sm:text-sm text-gray-600 mt-3 leading-relaxed whitespace-pre-line"></p>
 
-          <div class="mt-4 p-2.5 sm:p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-800 text-xs">
+          <div class="mt-4 p-2.5 sm:p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-800 text-xs">
             <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
             <span>Produto original com garantia Malala Store</span>
           </div>
@@ -629,7 +630,7 @@
 
         <div class="mt-5 pt-3 sm:pt-4 border-t border-gray-100 shrink-0">
           <div class="mb-3">
-            <span class="text-[11px] text-gray-400 block">Preço especial</span>
+            <span id="modalPriceLabel" class="text-[11px] text-gray-400 block">Preço especial</span>
             <div class="flex items-baseline gap-2 flex-wrap">
               <span id="modalProductPrice" class="text-xl sm:text-2xl font-black text-gray-900"></span>
               <span id="modalProductInstallments" class="text-[10px] sm:text-[11px] text-gray-500"></span>
@@ -648,82 +649,126 @@
 
   <!-- SCRIPT -->
   <script>
+    // Dicionário inteligente de descrições ricas para suprir qualquer produto que esteja com "." ou sem descrição no banco
+    const catalogDescriptionsMap = {
+      "lattafa mayar feminino edp 100ml": "Fragrância floral frutada vibrante e envolvente. Combina notas suculentas de lichia, framboesa e folha de violeta com um coração delicado de peônia branca e rosa, finalizando com baunilha cremosa e almíscar.",
+      "lattafa musamam white intense edp 100ml": "Perfume oriental floral sofisticado e magnético. Traz abertura luminosa de bergamota, laranja e especiarias, evoluindo para notas solares de coco, ylang-ylang e ambroxan sobre fundo nobre de sândalo.",
+      "stella dustin les fleurs brunnera 100ml": "Essência floral fresca e delicada inspirada na alta perfumaria. Combina pétalas brancas orvalhadas, acordes cítricos suaves e um fundo almiscarado elegante.",
+      "lattafa atheeri feminino edp 100ml": "Joia da perfumaria árabe com apresentação luxuosa. Apresenta acordes florais orientais adocicados na medida certa, notas ambaradas quentes e excelente fixação na pele.",
+      "maison alhambra your touch for women 100ml": "Fragrância feminina moderna e radiante. Une notas frutadas de framboesa e limão siciliano a um coração apaixonante de rosa, com fundo envolvente de baunilha, almíscar e madeiras ambaradas.",
+      "stella dustin sunset 100ml": "Perfume vibrante e solar que captura a energia do pôr do sol. Mistura notas frutadas tropicais e flores luminosas com um fundo levemente adocicado e sensual.",
+      "lattafa raneen feminino edp 80ml": "Elegância árabe em um frasco escultural. Fragrância floral oriental rica e feminina, com notas de frutas maduras, flores brancas nobres e base cremosa de baunilha e âmbar.",
+      "maison alhambra coeur liv 100ml": "Perfume floral delicado, romântico e atemporal. Destaca acordes de rosas frescas, peônia e bergamota sobre uma base macia de almíscar branco e madeiras nobres.",
+      "lattafa victoria 100ml": "Fragrância luminosa e refrescante que exala sofisticação. Combina notas cítricas e florais aquáticas com um fundo elegante de almíscar e madeiras claras.",
+      "maison alhambra so glam rouge intense 100ml": "Fragrância oriental floral intensa e sedutora. Combina notas luminosas de flor de laranjeira e jasmim com um fundo envolvente de baunilha bourbon, patchouli e madeiras ambaradas de alta fixação.",
+      "al wataniah sabah al ward feminino edp 100ml": "Um dos maiores sucessos da perfumaria árabe. Combina tangerina e pimenta rosa no topo com um coração sedutor de cacau, flor de laranjeira e jasmim sambac, finalizando com baunilha e fava tonka.",
+      "ard al zaafaran bint hooran feminino edp 80ml": "Perfume oriental especiado e ultra sensual. Traz notas de amêndoa, café e ylang-ylang combinadas com jasmim, tuberosa, fava tonka, cacau e baunilha cremosa.",
+      "lattafa fakhar gold extrait de parfum 100ml": "Extrait de Parfum solar, opulento e marcante. Combina tuberosa cremosa, jasmim, notas solares e sal marinho com um fundo luxuoso de âmbar, caxemira e fava tonka.",
+      "maison alhambra delilah feminino edp 100ml": "Fragrância floral frutada encantadora e ultra feminina. Destaca notas de ruibarbo, lichia e bergamota no topo, coração de rosa turca e peônia, e base aveludada de baunilha e almíscar branco.",
+      "armaf club de nuit woman edp 105ml": "Clássico absoluto de elegância e sofisticação. Apresenta notas cítricas de bergamota, toranja e pêssego combinadas com rosa, jasmim e fundo refinado de patchouli, baunilha e vetiver.",
+      "orientica exclusive dania luxury collection extrait": "Alta perfumaria árabe em concentração Extrait de Parfum. Fragrância luxuosa e aveludada que combina frutas nobres, flores orientais, madeiras preciosas e âmbar dourado.",
+      "armaf club de nuit maleka feminino edp 105ml": "Fragrância feminina cremosa, doce e envolvente. Combina acordes de frutas vermelhas, chantilly, flores brancas e baunilha com um fundo macio de almíscar e sândalo.",
+      "lattafa yara feminino edp 100ml": "O perfume árabe mais desejado do mundo. Uma nuvem cremosa e irresistível de orquídea, heliotrópio, frutas tropicais, acorde gourmet de morango com creme, baunilha e sândalo.",
+      "ard al zaafaran eftinaan feminino edp 100ml": "Perfume floral oriental elegante e delicado. Une notas de rosas frescas, bergamota e frutas vermelhas a uma base aconchegante de almíscar, âmbar e baunilha.",
+      "ard al zaafaran bint hooran rose passion 100ml": "Versão apaixonante e floral com notas vibrantes de frutas vermelhas, rosa damascena, peônia e um fundo adocicado de pralinê, baunilha e almíscar.",
+      "lattafa queen of arabia feminino edp 100ml": "Fragrância digna da realeza árabe. Combina notas orientais ricas, especiarias nobres, flores douradas e uma base opulenta de âmbar, oud suave e baunilha.",
+      "lattafa hayaati women 100ml": "Perfume feminino jovial, luminoso e encantador. Traz acordes de jasmim, tangerina verde e flor de gengibre sobre uma base irresistível de baunilha e âmbar.",
+      "armaf infinity gold feminino edp 105ml": "Fragrância dourada, radiante e sofisticada. Mistura notas florais brancas, pêssego e bergamota com um fundo quente de âmbar, almíscar e madeiras cremosas.",
+      "al wataniah shagaf al ward 100ml": "Buquê floral oriental luxuoso e envolvente. Destaca rosa de maio, osmanthus e jasmim acompanhados por notas de âmbar, cedro e narciso.",
+      "guerlain insolence feminino edp 75ml": "Ícone da perfumaria francesa Guerlain. Uma criação audaciosa e atalcada que celebra a violeta, íris luxuosa, frutas vermelhas e flor de laranjeira com fixação impecável.",
+      "chanel n°5 feminino edp 100ml": "O símbolo máximo da elegância feminina mundial. Um buquê floral aldeídico atemporal composto por rosa de maio, jasmim de Grasse, ylang-ylang e fundo aveludado de baunilha e sândalo.",
+      "dior j'adore feminino edp 100ml": "O grande floral solar da Maison Dior. Combina a essência de ylang-ylang com rosa damascena e o duo raro de jasmim Grandiflorum e jasmim Sambac.",
+      "lancôme la vie est belle feminino edp 100ml": "A fragrância da felicidade e sofisticação. Combina a nobreza da íris pallida com a profundidade do patchouli e um acorde gourmand irresistível de baunilha e pralinê.",
+      "carolina herrera good girl feminino edp 150ml": "Fragrância poderosa e sensual no icônico frasco stiletto. Revela a dualidade feminina com notas luminosas de jasmim e tuberosa contrastadas com fava tonka torrada e cacau.",
+      "yves saint laurent libre feminino edp 90ml": "O perfume da liberdade e audácia. Combina a sensualidade ardente da flor de laranjeira do Marrocos com a ousadia aromática da lavanda francesa e baunilha de Madagascar.",
+      "giorgio armani sì feminino edp": "Tributo à feminilidade moderna e elegante. Combina néctar de groselha negra, frésia e rosa de maio com um fundo sofisticado de baunilha e madeiras claras.",
+      "yves saint laurent black opium 50ml": "Fragrância floral gourmand viciante e eletrizante. Mistura a energia do café preto com a feminilidade das flores brancas e a doçura envolvente da baunilha.",
+      "dior miss dior 50ml": "Um buquê millefiori luminoso e apaixonante. Destaca a rosa Centifolia com notas de lírio-do-vale, peônia e íris sobre um fundo de madeiras macias e baunilha.",
+      "prada paradoxe feminino edp 90ml": "Assinatura floral ambarada vanguardista da Prada. Reinventa o frescor do botão de néroli, a sensualidade do âmbar e uma nova molécula de almíscar de longa duração.",
+      "chanel coco mademoiselle feminino": "A essência de uma mulher livre e audaciosa. Um oriental fresco vibrante com notas de laranja, rosa turca, jasmim e acordes puros de patchouli e vetiver.",
+      "giorgio armani my way feminino": "Buquê floral branco radiante e contemporâneo. Une a bergamota da Calábria e flor de laranjeira do Egito à tuberosa, jasmim e baunilha de Madagascar.",
+      "rabanne olympéa feminino edp 80ml": "Perfume oriental fresco digno de uma deusa moderna. Famoso pelo acorde exclusivo de baunilha salgada combinado com tangerina verde, jasmim aquático e madeira de caxemira.",
+      "carolina herrera 212 vip rosé feminino": "Fragrância festiva, elegante e sedutora. Combina o frescor borbulhante do champanhe rosé com flor de pêssego e fundo envolvente de almíscar branco e notas amadeiradas.",
+      "dolce & gabbana light blue feminino edt 100ml": "A alegria de viver o verão mediterrâneo. Combina maçã verde crocante, limão siciliano e cedro com rosa branca, bambu e fundo de âmbar.",
+      "afnan supremacy collector's edition masculino edp 100ml": "Edição especial de colecionador com altíssima performance. Combina abacaxi defumado, bergamota e flores brancas com musgo de carvalho, bétula, âmbar cinzento e almíscar.",
+      "maison alhambra moondrift blue intense masculino edp 100ml": "Fragrância masculina azul, fresca e magnética. Mistura notas cítricas e marítimas revigorantes com especiarias aromáticas, incenso suave e fundo amadeirado sofisticado.",
+      "lattafa al noble safeer masculino edp 100ml": "Perfume amadeirado especiado imponente e autêntico. Combina bergamota e artemísia com notas herbais, incenso, madeiras nobres, patchouli e couro elegante.",
+      "lattafa asad elixir masculino edp 100ml": "A versão ainda mais intensa, escura e poderosa da linha Asad. Traz especiarias quentes, lavanda aromática, íris e um fundo denso de baunilha negra, âmbar, incenso e madeiras.",
+      "lattafa asad 100ml": "Consagrado mundialmente pela potência e sofisticação. Combina pimenta preta, tabaco e abacaxi no topo com café, patchouli, íris, baunilha, âmbar e benjoim na base.",
+      "lattafa asad bourbon 100ml": "Fusão envolvente e sedutora de especiarias quentes, notas licorosas amadeiradas, cacau, lavanda e uma base rica de baunilha bourbon e âmbar.",
+      "maison alhambra summit elixir 100ml": "Perfume masculino intenso, aromático e especiado. Une notas de lavanda, noz-moscada e canela a um fundo marcante de alcaçuz, âmbar, patchouli e vetiver do Haiti.",
+      "maison alhambra salvo 100ml": "Clássico masculino versátil, fresco e potente. Combina bergamota da Calábria e pimenta preta com lavanda, gerânio, pimenta Sichuan e base marcante de ambroxan e cedro.",
+      "maison alhambra glacier ultra 100ml": "Fragrância aromática gourmand sedutora para noites marcantes. Mistura pera, lavanda e hortelã com canela, sálvia e um fundo viciante de baunilha negra e âmbar.",
+      "mawwal malek masculino": "Perfume árabe de presença imperial. Apresenta acordes amadeirados aromáticos, especiarias frescas e fundo ambarado de excelente projeção e fixação.",
+      "french avenue liquid brun 100ml": "Obra-prima especiada e ambarada da perfumaria de nicho árabe. Combina canela, flor de laranjeira, cardamomo e bergamota com fundo luxuoso de baunilha bourbon, pralinê e ambroxan.",
+      "armaf club de nuit intense masculino": "O perfume masculino mais elogiado da Armaf. Abre com limão, abacaxi, groselha preta e bergamota, evoluindo para bétula esfumaçada, jasmim, almíscar, âmbar cinzento e baunilha.",
+      "rasasi hawas thunder 100ml": "Energia explosiva e frescor moderno. Combina notas cítricas vibrantes, acordes aquáticos, especiarias aromáticas e base potente de madeiras ambaradas e almíscar.",
+      "rasasi hawas ice 100ml": "Versão ultra refrescante e potente do lendário Hawas. Une maçã congelada, limão italiano, ameixa e hortelã a um fundo duradouro de ambroxan, almíscar e musgo.",
+      "rasasi hawas kobra 100ml": "Fragrância intensa, misteriosa e magnética. Mistura especiarias orientais, acordes aromáticos frescos e fundo denso de madeiras nobres e âmbar.",
+      "armaf club de nuit intense overdose": "Concentração extrema de poder e sedução. Intensifica os acordes frutados esfumaçados e amadeirados da linha Club de Nuit com rastro inesquecível.",
+      "armaf club de nuit intense man extrait concentrated": "Versão Extrait de Parfum altamente concentrada. Projetada para máxima fixação e projeção com notas cítricas, bétula defumada e âmbar cinzento.",
+      "carolina herrera 212 vip black masculino": "Perfume aromático fougère explosivo e noturno. Combina absinto, anis e erva-doce com lavanda, couro e um fundo envolvente de casca de baunilha negra.",
+      "carolina herrera 212 men nyc 100ml": "O espírito dinâmico e elegante de Nova York. Combina notas verdes frescas, toranja, gengibre e especiarias com gardênia, sândalo, incenso e almíscar branco.",
+      "paco rabanne invictus masculino": "O perfume da vitória. Um contraste vibrante entre o frescor marinho e a toranja com o calor amadeirado da folha de louro, madeira guaiac e âmbar cinzento.",
+      "issey miyake l'eau d'issey pour homme": "Ícone de frescor aquático amadeirado. Combina o cítrico raro do yuzu japonês com noz-moscada, lírio d'água azul, vetiver e sândalo.",
+      "dior sauvage masculino": "Criação lendária da Dior. Um frescor radical de bergamota suculenta da Calábria envolvida pelo rastro amadeirado e nobre do ambroxan e pimenta.",
+      "chanel bleu de chanel edp": "Elogio à liberdade masculina em um aromático amadeirado atemporal. Une notas cítricas revigorantes, hortelã e pimenta rosa ao incenso, cedro e sândalo da Nova Caledônia.",
+      "chanel allure homme sport": "Frescor em movimento e sensualidade natural. Combina tangerina italiana e notas marinhas cristalinas com fava tonka, cedro, almíscar branco e âmbar.",
+      "paco rabanne 1 million masculino": "O lingote de ouro da perfumaria mundial. Um couro especiado audacioso que combina tangerina sanguínea, hortelã, canela, rosa e âmbar.",
+      "yves saint laurent y edp masculino": "Fougère amadeirado intenso e sofisticado. Combina maçã verde e gengibre com sálvia, bagas de zimbro, fava tonka, cedro e olíbano.",
+      "azzaro the most wanted masculino": "Fragrância fougère oriental amadeirada altamente sedutora. Destaca cardamomo picante, acorde de caramelo toffee derretido e madeira de âmbar.",
+      "yves saint laurent kouros edt": "Clássico poderoso de virilidade e presença marcante. Combina coentro, artemísia e bergamota com cravo, patchouli, mel, couro e musgo de carvalho.",
+      "yves saint laurent myslf masculino": "A nova expressão da masculinidade moderna da YSL. Um floral amadeirado que une bergamota fresca ao absoluto de flor de laranjeira e madeiras texturizadas.",
+      "giorgio armani code masculino": "Símbolo de elegância magnética e sedução noturna. Combina bergamota verde e íris com o calor envolvente da fava tonka e madeira de cedro.",
+      "giorgio armani acqua di giò masculino": "Harmonia perfeita entre notas marinhas, frutas cítricas solares, alecrim aromático e um fundo amadeirado e almiscarado refrescante.",
+      "jean paul gaultier le male elixir": "Intenso, dourado e incendiário. Combina lavanda aromática e hortelã fresca com benjoim rico, fava tonka, mel dourado e tabaco.",
+      "lattafa opulent dubai unissex edp 100ml": "Tributo ao luxo e frescor de Dubai. Fragrância unissex vibrante que combina acordes cítricos luminosos, notas aromáticas florais e base sofisticada de âmbar e almíscar.",
+      "french avenue vulcan feu 100ml": "Explosão tropical e sofisticada de alta perfumaria. Destaca notas suculentas de manga madura, limão, gengibre e frutas vermelhas sobre um fundo elegante de madeiras nobres, cumaru e âmbar.",
+      "lattafa khamrah waha 100ml": "Interpretação refrescante e exótica da linha Khamrah. Combina notas aromáticas luminosas, frutas suculentas e especiarias suaves com um fundo envolvente de âmbar e madeiras.",
+      "lattafa khamrah qahwa 100ml": "Perfume especiado gourmand luxuoso e viciante. Une canela, cardamomo e gengibre a frutas cristalizadas, pralinê, café arábica torrado, fava tonka e baunilha.",
+      "maison alhambra philos pura 100ml": "Cesta de frutas mediterrâneas com altíssima fixação. Combina laranja, bergamota e limão siciliano com um coração frutado aveludado e base de almíscar branco, baunilha de Madagascar e âmbar.",
+      "orientica royal amber": "Joia da perfumaria de luxo com projeção e fixação monumentais. Combina bergamota e notas verdes com melão, abacaxi, notas doces, âmbar real, baunilha e almíscar.",
+      "lattafa pride tharwah gold 100ml": "Sofisticação dourada da linha Lattafa Pride. Combina lavanda e bergamota com flor de laranjeira, jasmim egípcio, baunilha cremosa, âmbar e vetiver.",
+      "lattafa afeef 100ml": "Apresentação imperial com pavões cravejados. Fragrância compartilhável opulenta que combina bergamota, pimenta rosa e pêssego com jasmim, flor de laranjeira, pralinê, sândalo e patchouli.",
+      "kit victoria's secret coconut passion (splash 250ml + loção 236ml)": "Kit completo original Victoria's Secret com Body Splash (250ml) e Loção Hidratante Perfumada (236ml). Fragrância tropical gourmand irresistível de coco cremoso, baunilha quente e lírio-do-vale.",
+      "kit victoria's secret bare vanilla (splash 250ml + loção 236ml)": "O campeão absoluto de vendas da Victoria's Secret em kit completo (Body Splash 250ml + Loção 236ml). Combina baunilha batida cremosa com caxemira macia e envolvente.",
+      "kit victoria's secret pure seduction (splash 250ml + loção 236ml)": "Kit perfumado completo (Body Splash 250ml + Loção Hidratante 236ml). Fragrância frutada floral vibrante e sedutora com notas de ameixa vermelha suculenta e frésia doce.",
+      "kit victoria's secret love spell (splash 250ml + loção 236ml)": "Clássico apaixonante da Victoria's Secret em dupla perfeita (Body Splash 250ml + Loção 236ml). Combina flor de cerejeira e pêssego fresco para pele macia e perfumada o dia todo.",
+      "hidratante corporal mugler angel 200ml": "Creme hidratante corporal de luxo Mugler Angel (200ml). Textura rica e aveludada que nutre profundamente a pele e deixa a assinatura icônica de patchouli, pralinê, frutas vermelhas e baunilha.",
+      "hidratante corporal isabelle belle vulcan feu 200ml": "Hidratante corporal perfumado de alta absorção (200ml). Deixa a pele macia, acetinada e intensamente perfumada com as notas tropicais e sofisticadas de Vulcan Feu.",
+      "hidratante corporal isabelle la belle hassan aura 200g": "Creme hidratante corporal perfumado (200g) de textura cremosa e toque aveludado. Proporciona hidratação prolongada e fragrância árabe sofisticada na pele.",
+      "alluvi labs glow dual regenerative (50 cápsulas)": "Tratamento facial avançado em cápsulas duplas regenerativas com PDRN + GHK-Cu (50 cápsulas). Promove renovação celular profunda, firmeza, reparo da barreira cutânea e efeito Glass Skin.",
+      "apple iphone 18": "Smartphone Apple original lacrado com garantia. Desempenho de última geração, sistema de câmeras avançado e tela Super Retina XDR. Consulte cores e capacidades disponíveis.",
+      "apple ipad": "Tablet Apple iPad original lacrado. Perfeito para produtividade, estudos e entretenimento com tela de altíssima definição e bateria para o dia todo. Consulte versões disponíveis.",
+      "apple watch": "Smartwatch Apple Watch original com monitoramento avançado de saúde, treinos, notificações inteligentes e resistência à água. Consulte tamanhos de caixa e pulseiras.",
+      "microfone hollyland lark m2 wireless": "Sistema de microfone de lapela sem fio ultracompacto Hollyland Lark M2. Áudio em qualidade de estúdio (48kHz/24bit), cancelamento de ruído inteligente e estojo carregador de longa duração.",
+      "cabo usb-c apple para iphone": "Cabo USB-C original Apple de alta durabilidade para carregamento rápido e transferência segura de dados em iPhones, iPads e acessórios compatíveis.",
+      "fonte carregador usb-c 20w apple": "Adaptador de energia USB-C de 20W original Apple. Oferece recarga rápida, segura e eficiente para o seu iPhone e iPad em qualquer lugar."
+    };
+
+    function getCleanProductDescription(p) {
+      const titleKey = String(p.title || '').trim().toLowerCase();
+      if (catalogDescriptionsMap[titleKey]) return catalogDescriptionsMap[titleKey];
+      const raw = String(p.description || p.desc || p.descricao || '').trim();
+      if (!raw || raw === '.' || raw === 'Produto recém-adicionado.') {
+        return `${p.title} original com garantia de procedência Malala Store. Alta fixação e qualidade premium.`;
+      }
+      return raw;
+    }
+
     const defaultProducts = [
-      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
-      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
-      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, stock: 8, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
-      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, stock: 50, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
-      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
-      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
-      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
-      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!' },
-      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗' },
-      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: 'Nicho', image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante' },
-      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: 'Perfume Árabe', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨' },
-      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: 'Importado', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.' },
-      { id: 15, title: 'Ansaam Gold / Silver (Lattafa)', category: 'Perfumes', price: 0.00, stock: 8, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 16, title: 'Vulcan (Maison Alhambra)', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 17, title: 'Hassan', category: 'Perfumes', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 18, title: 'Malik', category: 'Perfumes', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 19, title: 'Liquid Brun (Maison Alhambra)', category: 'Perfumes', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 20, title: 'Vulcan (Maison Alhambra)', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 21, title: 'Lattafa Khamrah', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 22, title: 'Lattafa Khamrah Qahwa', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 23, title: 'Philos Pura (Maison Alhambra)', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 24, title: 'Armaf Club de Nuit Intense Man', category: 'Perfumes', price: 0.00, stock: 8, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 25, title: 'Rasasi Hawas', category: 'Perfumes', price: 0.00, stock: 0, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 26, title: 'Lattafa Fakhar', category: 'Perfumes', price: 0.00, stock: 0, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 27, title: 'Armaf Club de Nuit (Concentrado)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 28, title: 'Rasasi Hawas Ice', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 29, title: 'Hawas Kobra', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 30, title: 'Armaf Club de Nuit Overdose', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 31, title: 'Guerlain', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 32, title: 'Wajid / Velvet', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 33, title: 'Armaf Club de Nuit Woman', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 34, title: 'Orientica', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 35, title: 'Armaf Club de Nuit Milestone', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 36, title: 'Lattafa Yara', category: 'Perfumes', price: 0.00, stock: 5, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 37, title: 'Emaan / Afnan', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 38, title: 'Ard Al Zaafaran Bint Hooran Rose', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 39, title: 'Gentleman (Givenchy)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 40, title: 'Lattafa Tharwah Gold', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 41, title: 'Queen of Arabia', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 42, title: 'Lattafa Hayaati Female', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 43, title: 'Infinity', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 44, title: 'Afnan', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 45, title: 'Kit Victoria\'s Secret Coconut Passion', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 46, title: 'Kit Victoria\'s Secret Vanilla Lace', category: 'Perfumes', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 47, title: 'Kit Victoria\'s Secret Pure Seduction', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 48, title: 'Kit Victoria\'s Secret Love Spell', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 49, title: 'Lattafa Mayar', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 50, title: 'Lattafa Musamam', category: 'Perfumes', price: 0.00, stock: 4, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 51, title: 'Les Fleurs (Maison Alhambra)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 52, title: '212 VIP Black (Carolina Herrera)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 53, title: '212 Men (Carolina Herrera)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 54, title: 'Invictus (Paco Rabanne)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 55, title: 'Athari', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 56, title: 'Issey Miyake', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 57, title: 'Emporio Armani Stronger With You', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 58, title: 'Afnan Supremacy', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 59, title: 'Sunset', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 60, title: 'Moonlight', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 61, title: 'Raghba / Ramz (Lattafa)', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 62, title: 'Lattafa Al Noble', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 63, title: 'Maison Alhambra Kuro / Coeur', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 64, title: 'Victoria\'s Secret (Diversos)', category: 'Perfumes', price: 0.00, stock: 5, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 65, title: 'Lattafa Opulent', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 66, title: 'So Scandal! (Jean Paul Gaultier)', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 67, title: 'Lattafa Asad Elixir', category: 'Perfumes', price: 0.00, stock: 1, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 68, title: 'Lattafa Asad Woman', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 69, title: 'Lattafa Asad Bourbon', category: 'Perfumes', price: 0.00, stock: 5, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 70, title: 'Sabah', category: 'Perfumes', price: 0.00, stock: 5, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 71, title: 'Swiss Arabian Shaghaf Oud', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 72, title: 'Ard Al Zaafaran Bint Hooran', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 73, title: 'Summit', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 74, title: 'Maison Alhambra Salvo', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 75, title: 'Maison Alhambra Glacier Ultra', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 76, title: 'Cabo para iPhone', category: 'Eletrônicos/Acessórios', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 77, title: 'Fonte / Carregador de tomada para iPhone', category: 'Eletrônicos/Acessórios', price: 0.00, stock: 7, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' }
+      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: '', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
+      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: '', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
+      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, stock: 8, badge: '', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
+      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, stock: 50, badge: '', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
+      { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: '', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
+      { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: '', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
+      { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
+      { id: 6, title: 'INSOLENCE', category: 'Perfumes', price: 750.00, stock: 5, badge: '', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'O Insolence, da Guerlain, não foi feito para quem quer passar despercebida!\n\n🌸 Violeta envolvente\n💜 Um toque doce e sofisticado\n✨ Uma fragrância marcante, cheia de personalidade!' },
+      { id: 9, title: 'Delilah Pour Femme', category: 'Perfumes', price: 750.00, stock: 7, badge: '', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Delilah Pour Femme\nUm perfume feminino, sofisticado e envolvente — perfeito para quem ama deixar uma fragrância inesquecível por onde passa. 💗' },
+      { id: 10, title: 'ASAD ELIXIR – Lattafa', category: 'Perfumes', price: 750.00, stock: 3, badge: '', image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Presença marcante, elegância e aquele aroma que não passa despercebido.\n\n✨ Sofisticado\n🔥 Intenso\n🖤 Marcante' },
+      { id: 13, title: 'ASAD BOURBON - Lattafa', category: 'Perfumes', price: 750.00, stock: 10, badge: '', image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Uma fragrância marcante, sofisticada e envolvente para quem gosta de chegar deixando sua assinatura. 🖤✨' },
+      { id: 14, title: 'Fakhar Lattafa', category: 'Perfumes', price: 750.00, stock: 4, badge: '', image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Fakhar Lattafa traz uma fragrância marcante, sofisticada e envolvente — daquelas que deixam presença mesmo depois que você passa.' }
     ];
 
     const defaultFirebaseConfig = {
@@ -753,19 +798,25 @@
       } catch(e) { console.warn("Erro ao inicializar Firebase:", e); }
     }
 
+    function normalizeProduct(p) {
+      return {
+        ...p,
+        stock: p.stock !== undefined ? p.stock : 10,
+        images: p.images || [],
+        desc: getCleanProductDescription(p),
+        badge: (p.badge && p.badge.toLowerCase() !== 'lançamento' && p.badge.toLowerCase() !== 'lancamento') ? p.badge : ''
+      };
+    }
+
     function loadProducts() {
       const stored = localStorage.getItem('malala_products');
       if (stored) {
         try {
-          return JSON.parse(stored).map(p => ({
-            ...p,
-            stock: p.stock !== undefined ? p.stock : 10,
-            images: p.images || []
-          }));
+          return JSON.parse(stored).map(normalizeProduct);
         } catch(e) { console.error(e); }
       }
       localStorage.setItem('malala_products', JSON.stringify(defaultProducts));
-      return defaultProducts;
+      return defaultProducts.map(normalizeProduct);
     }
 
     let products = loadProducts();
@@ -774,11 +825,7 @@
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
         if (doc.exists && doc.data().products) {
-          products = doc.data().products.map(p => ({
-            ...p,
-            stock: p.stock !== undefined ? p.stock : 10,
-            images: p.images || []
-          }));
+          products = doc.data().products.map(normalizeProduct);
           localStorage.setItem('malala_products', JSON.stringify(products));
           renderProducts();
           verifyCartStock(); 
@@ -1086,7 +1133,7 @@
       try {
        const backendUrl = 'https://malala-backend-1.onrender.com';
        const controller = new AbortController();
-       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         if (selectedPayMethod === 'pix') {
           try {
@@ -1188,7 +1235,6 @@
         }
       } catch (err) {
         console.error('Checkout error:', err);
-        // Ensure UI resets completely in case of an error not caught by AbortError handling
         if (selectedPayMethod === 'pix') {
           btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
         } else {
@@ -1255,7 +1301,7 @@
 
     function filterByBrand(brandName) {
       currentBrandFilter = brandName;
-      const filtered = products.filter(p => p.title.toLowerCase().includes(brandName.toLowerCase()) || p.desc.toLowerCase().includes(brandName.toLowerCase()));
+      const filtered = products.filter(p => p.title.toLowerCase().includes(brandName.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(brandName.toLowerCase()));
       document.getElementById('categoryTitle').innerText = `Busca por Marcas: ${brandName}`;
       renderCategories();
       renderProducts(filtered);
@@ -1270,7 +1316,7 @@
       const q = document.getElementById('searchInput').value.toLowerCase();
       if (!q.trim()) { renderProducts(); return; }
       currentBrandFilter = null;
-      const filtered = products.filter(p => p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.badge.toLowerCase().includes(q));
+      const filtered = products.filter(p => p.title.toLowerCase().includes(q) || getCleanProductDescription(p).toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
       document.getElementById('categoryTitle').innerText = `Resultados para: "${q}"`;
       renderProducts(filtered);
     }
@@ -1278,7 +1324,7 @@
     function sortProducts() {
       const v = document.getElementById('sortSelect').value;
       let list;
-      if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+      if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(currentBrandFilter.toLowerCase()));
       else list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
 
       if (v === 'price-low') list.sort((a,b) => a.price - b.price);
@@ -1286,11 +1332,16 @@
       renderProducts(list);
     }
 
+    function consultProductWhatsApp(title) {
+      const msg = `Olá! Vim pelo site da Malala Store e gostaria de consultar o valor e disponibilidade do produto: *${title}*`;
+      window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
     function renderProducts(customList = null) {
       const grid = document.getElementById('productsGrid');
       let list = customList;
       if (!list) {
-          if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || p.desc.toLowerCase().includes(currentBrandFilter.toLowerCase()));
+          if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(currentBrandFilter.toLowerCase()));
           else list = currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory);
       }
 
@@ -1309,39 +1360,54 @@
       }
 
       grid.innerHTML = list.map(p => {
-        const isOutOfStock = p.stock === 0;
+        const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
+        const isConsult = !isOutOfStock && (p.price === 0 || p.status === 'consulte');
+        const cleanDesc = getCleanProductDescription(p);
+
         const stockBadge = isOutOfStock 
             ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-xs px-4 py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
             : '';
-            
-        const btnClass = isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#FF5500] hover:bg-[#E64A00] text-white shadow-md shadow-[#FF5500]/20';
+
+        const priceDisplay = isConsult
+            ? `<span class="text-sm font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg inline-block mt-0.5">Consulte</span>`
+            : `<span class="text-base font-black text-gray-900">R$ ${Number(p.price || 0).toFixed(2).replace('.', ',')}</span>`;
+
+        const actionBtn = isOutOfStock
+            ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed p-2.5 rounded-xl transition-all" title="Esgotado"><i class="fa-solid fa-ban text-xs"></i></button>`
+            : isConsult
+              ? `<button onclick="consultProductWhatsApp('${p.title.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all" title="Consultar no WhatsApp"><i class="fa-brands fa-whatsapp text-sm"></i> Consultar</button>`
+              : `<button onclick="addToCart(${p.id})" class="bg-[#FF5500] hover:bg-[#E64A00] text-white shadow-md shadow-[#FF5500]/20 p-2.5 rounded-xl transition-all" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-xs"></i></button>`;
 
         return `
-        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative">
+        <div class="bg-white border border-gray-200/90 rounded-2xl overflow-hidden hover:border-[#FF5500]/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative">
           ${stockBadge}
           <div>
-            <div class="relative h-48 bg-gray-50 overflow-hidden cursor-pointer" onclick="openProductModal(${p.id})">
-              <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-              <span class="absolute top-2.5 left-2.5 bg-[#FF5500] text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow z-20">${p.badge}</span>
-              <button class="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow backdrop-blur-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"><i class="fa-solid fa-eye text-[#FF5500]"></i> Espiar</button>
+            <div class="relative h-52 bg-white overflow-hidden cursor-pointer flex items-center justify-center p-3 border-b border-gray-100/80" onclick="openProductModal(${p.id})">
+              <img src="${p.image}" alt="${p.title}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500">
+              
+              <!-- Botão Espiar com Estética Glassmorphism de Luxo -->
+              <button type="button" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 hover:bg-gray-900 text-gray-900 hover:text-white border border-gray-200/80 hover:border-gray-900 text-[11px] font-semibold tracking-wide px-3.5 py-1.5 rounded-full shadow-lg backdrop-blur-md flex items-center gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20 whitespace-nowrap">
+                <i class="fa-regular fa-eye text-[#FF5500] group-hover:text-[#FF5500]"></i>
+                <span>Espiar</span>
+              </button>
             </div>
             <div class="p-4 cursor-pointer" onclick="openProductModal(${p.id})">
-              <div class="flex justify-between items-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]">${p.category}</span>
-                  ${!isOutOfStock && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
+              <div class="flex justify-between items-center gap-1">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-[#FF5500]">${p.subcategory || p.category}</span>
+                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
               </div>
               <h3 class="font-bold text-gray-900 text-sm mt-1 line-clamp-1 group-hover:text-[#FF5500] transition-colors">${p.title}</h3>
-              <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.desc}</p>
+              <p class="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">${cleanDesc}</p>
             </div>
           </div>
-          <div class="p-4 pt-0 flex items-center justify-between border-t border-gray-100 mt-3 pt-3">
+          <div class="p-4 pt-3 flex items-center justify-between border-t border-gray-100 mt-2">
             <div>
-              <span class="text-[10px] text-gray-400 block uppercase">Preço</span>
-              <span class="text-base font-black text-gray-900">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
+              <span class="text-[10px] text-gray-400 block uppercase">${isConsult ? 'Sob Consulta' : 'Preço'}</span>
+              ${priceDisplay}
             </div>
             <div class="flex items-center gap-1.5 relative z-20">
-              <button onclick="openProductModal(${p.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl transition-all shadow-sm" title="Ver Detalhes"><i class="fa-solid fa-eye text-xs"></i></button>
-              <button onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="${btnClass} p-2.5 rounded-xl transition-all" title="Adicionar ao Carrinho" ${isOutOfStock ? 'disabled' : ''}><i class="fa-solid fa-cart-plus text-xs"></i></button>
+              <button onclick="openProductModal(${p.id})" class="bg-gray-50 hover:bg-gray-900 text-gray-600 hover:text-white border border-gray-200 hover:border-gray-900 p-2.5 rounded-xl transition-all" title="Ver Detalhes"><i class="fa-regular fa-eye text-xs"></i></button>
+              ${actionBtn}
             </div>
           </div>
         </div>
@@ -1354,26 +1420,56 @@
       const p = products.find(x => x.id === id);
       if (!p) return;
 
+      const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
+      const isConsult = !isOutOfStock && (p.price === 0 || p.status === 'consulte');
+      const cleanDesc = getCleanProductDescription(p);
+
       document.getElementById('modalProductImg').src = p.image;
-      document.getElementById('modalProductBadge').innerText = p.badge;
-      document.getElementById('modalProductCategory').innerText = p.category;
+      
+      // Oculta completamente a etiqueta de Lançamento para manter o modal limpo
+      const badgeEl = document.getElementById('modalProductBadge');
+      badgeEl.classList.add('hidden');
+
+      document.getElementById('modalProductCategory').innerText = p.subcategory || p.category;
       document.getElementById('modalProductTitle').innerText = p.title;
-      document.getElementById('modalProductDesc').innerText = p.desc;
-      document.getElementById('modalProductPrice').innerText = `R$ ${p.price.toFixed(2).replace('.', ',')}`;
+      document.getElementById('modalProductDesc').innerText = cleanDesc;
 
       const stockEl = document.getElementById('modalProductStock');
       const addBtn = document.getElementById('modalAddToCartBtn');
+      const priceEl = document.getElementById('modalProductPrice');
+      const installmentsEl = document.getElementById('modalProductInstallments');
+      const priceLabelEl = document.getElementById('modalPriceLabel');
       
-      if (p.stock === 0) {
+      if (isOutOfStock) {
           stockEl.innerText = "ESGOTADO";
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-200";
+          priceLabelEl.innerText = "Indisponível no momento";
+          priceEl.innerText = p.price > 0 ? `R$ ${Number(p.price).toFixed(2).replace('.', ',')}` : "Esgotado";
+          installmentsEl.innerText = "";
           addBtn.disabled = true; 
-          addBtn.className = "w-full bg-gray-300 text-gray-500 font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed";
+          addBtn.innerHTML = `<i class="fa-solid fa-ban text-sm"></i> Produto Esgotado`;
+          addBtn.className = "w-full bg-gray-200 text-gray-500 font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed";
+          addBtn.onclick = null;
+      } else if (isConsult) {
+          stockEl.innerText = "SOB ENCOMENDA / CONSULTA";
+          stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+          priceLabelEl.innerText = "Atendimento exclusivo via WhatsApp";
+          priceEl.innerText = "Consulte";
+          installmentsEl.innerText = "Condições especiais no PIX ou Cartão";
+          addBtn.disabled = false;
+          addBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-base"></i> Consultar Disponibilidade no WhatsApp`;
+          addBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20";
+          addBtn.onclick = () => { consultProductWhatsApp(p.title); closeProductModal(); };
       } else {
           stockEl.innerText = `ESTOQUE: ${p.stock}`;
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+          priceLabelEl.innerText = "Preço especial";
+          priceEl.innerText = `R$ ${Number(p.price).toFixed(2).replace('.', ',')}`;
+          installmentsEl.innerText = `ou 10x de R$ ${(p.price / 10).toFixed(2).replace('.', ',')} sem juros`;
           addBtn.disabled = false; 
+          addBtn.innerHTML = `<i class="fa-solid fa-cart-plus text-sm"></i> Adicionar ao Carrinho`;
           addBtn.className = "w-full bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-[#FF5500]/20";
+          addBtn.onclick = () => { addToCart(p.id); closeProductModal(); };
       }
 
       const thumbsContainer = document.getElementById('modalThumbnails');
@@ -1386,9 +1482,6 @@
           thumbsContainer.classList.add('hidden');
       }
 
-      document.getElementById('modalProductInstallments').innerText = `ou 10x de R$ ${(p.price / 10).toFixed(2).replace('.', ',')} sem juros`;
-      document.getElementById('modalAddToCartBtn').onclick = () => { addToCart(p.id); closeProductModal(); };
-
       document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
     }
@@ -1397,8 +1490,11 @@
 
     function addToCart(id) {
       const p = products.find(x => x.id === id);
+      if (!p) return;
+      if (p.stock <= 0 || p.status === 'esgotado') return showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
+      if (p.price === 0 || p.status === 'consulte') return consultProductWhatsApp(p.title);
+
       const ex = cart.find(x => x.id === id);
-      if (p.stock === 0) return showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
       if (ex) {
         if (ex.qty >= p.stock) return showToast('Estoque Limite', `Você já adicionou todo o estoque disponível (${p.stock}).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
         ex.qty++;
@@ -1424,7 +1520,7 @@
       } else {
         container.innerHTML = cart.map(i => `
           <div class="bg-gray-50 p-3 rounded-xl flex items-center gap-3 border border-gray-200">
-            <img src="${i.image}" class="w-14 h-14 object-cover rounded-lg bg-white border border-gray-200">
+            <img src="${i.image}" class="w-14 h-14 object-contain rounded-lg bg-white border border-gray-200 p-1">
             <div class="flex-1"><h4 class="text-xs font-bold text-gray-900 line-clamp-1">${i.title}</h4><p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}</p><div class="flex items-center gap-2 mt-2"><div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs"><button onclick="changeQty(${i.id}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button><span class="px-2 py-0.5 font-bold text-gray-900">${i.qty}</span><button onclick="changeQty(${i.id}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button></div></div></div>
             <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
