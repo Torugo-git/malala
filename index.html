@@ -632,8 +632,8 @@
         <div class="mt-5 pt-4 border-t border-gray-100 shrink-0">
           <div class="bg-gradient-to-br from-gray-50 to-orange-50/30 border border-gray-200/80 rounded-2xl p-3.5 sm:p-4 mb-3.5 shadow-inner">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Valor exclusivo</span>
-              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span id="modalPriceLabel" class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Valor exclusivo</span>
+              <span id="modalPaymentTag" class="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
                 <i class="fa-solid fa-bolt text-[9px]"></i> PIX ou Cartão
               </span>
             </div>
@@ -641,7 +641,7 @@
               <!-- Preenchido com tipografia de luxo via JS -->
             </div>
             <div class="mt-2 pt-2 border-t border-gray-200/60 flex items-center gap-1.5 text-gray-600">
-              <i class="fa-regular fa-credit-card text-[#FF5500] text-xs"></i>
+              <i id="modalInstallmentIcon" class="fa-regular fa-credit-card text-[#FF5500] text-xs"></i>
               <span id="modalProductInstallments" class="text-[11px] font-semibold"></span>
             </div>
           </div>
@@ -746,9 +746,9 @@
       "hidratante corporal isabelle belle vulcan feu 200ml": "Hidratante corporal perfumado de alta absorção (200ml). Deixa a pele macia, acetinada e intensamente perfumada com as notas tropicais e sofisticadas de Vulcan Feu.",
       "hidratante corporal isabelle la belle hassan aura 200g": "Creme hidratante corporal perfumado (200g) de textura cremosa e toque aveludado. Proporciona hidratação prolongada e fragrância árabe sofisticada na pele.",
       "alluvi labs glow dual regenerative (50 cápsulas)": "Tratamento facial avançado em cápsulas duplas regenerativas com PDRN + GHK-Cu (50 cápsulas). Promove renovação celular profunda, firmeza, reparo da barreira cutânea e efeito Glass Skin.",
-      "apple iphone 18": "Smartphone Apple original lacrado com garantia. Desempenho de última geração, sistema de câmeras avançado e tela Super Retina XDR.",
-      "apple ipad": "Tablet Apple iPad original lacrado. Perfeito para produtividade, estudos e entretenimento com tela de altíssima definição e bateria para o dia todo.",
-      "apple watch": "Smartwatch Apple Watch original com monitoramento avançado de saúde, treinos, notificações inteligentes e resistência à água.",
+      "apple iphone 18": "Smartphone Apple original lacrado com garantia. Desempenho de última geração, sistema de câmeras avançado e tela Super Retina XDR. Consulte cores e capacidades disponíveis.",
+      "apple ipad": "Tablet Apple iPad original lacrado. Perfeito para produtividade, estudos e entretenimento com tela de altíssima definição e bateria para o dia todo. Consulte versões disponíveis.",
+      "apple watch": "Smartwatch Apple Watch original com monitoramento avançado de saúde, treinos, notificações inteligentes e resistência à água. Consulte tamanhos de caixa e pulseiras.",
       "microfone hollyland lark m2 wireless": "Sistema de microfone de lapela sem fio ultracompacto Hollyland Lark M2. Áudio em qualidade de estúdio (48kHz/24bit), cancelamento de ruído inteligente e estojo carregador de longa duração.",
       "cabo usb-c apple para iphone": "Cabo USB-C original Apple de alta durabilidade para carregamento rápido e transferência segura de dados em iPhones, iPads e acessórios compatíveis.",
       "fonte carregador usb-c 20w apple": "Adaptador de energia USB-C de 20W original Apple. Oferece recarga rápida, segura e eficiente para o seu iPhone e iPad em qualquer lugar."
@@ -772,6 +772,11 @@
         return `<span class="text-xs font-extrabold text-[#FF5500] mr-0.5 self-start mt-1.5">R$</span><span class="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-sm font-black text-gray-900 self-start mt-1">,${decPart}</span>`;
       }
       return `<span class="text-[11px] font-extrabold text-[#FF5500] mr-0.5">R$</span><span class="text-xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-xs font-extrabold text-gray-700">,${decPart}</span>`;
+    }
+
+    function consultProductWhatsApp(title) {
+      const msg = `Olá! Vim pelo site da Malala Store e gostaria de consultar o valor e a disponibilidade do produto: *${title}*`;
+      window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     const defaultProducts = [
@@ -1373,17 +1378,33 @@
       }
 
       grid.innerHTML = list.map(p => {
-        const isOutOfStock = p.stock <= 0;
+        const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
+        const isConsult = !isOutOfStock && (Number(p.price || 0) === 0 || p.status === 'consulte');
         const cleanDesc = getCleanProductDescription(p);
         const installmentVal = (Number(p.price || 0) / 10).toFixed(2).replace('.', ',');
+        const safeTitle = String(p.title || '').replace(/'/g, "\\'");
 
         const stockBadge = isOutOfStock 
             ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-xs px-4 py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
             : '';
 
-        const btnClass = isOutOfStock
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            : 'bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20';
+        const priceSectionHTML = isConsult
+            ? `<div>
+                 <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Sob Consulta</span>
+                 <span class="text-sm font-black text-gray-900 block leading-tight mt-0.5">Valor no WhatsApp</span>
+               </div>`
+            : `<div>
+                 <div class="flex items-baseline">
+                   ${formatLuxuryPriceHTML(p.price, 'card')}
+                 </div>
+                 <span class="text-[10px] text-gray-500 font-medium block mt-0.5">10x de <strong class="text-gray-700">R$ ${installmentVal}</strong> s/ juros</span>
+               </div>`;
+
+        const mainActionButtonHTML = isOutOfStock
+            ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed w-10 h-9 rounded-xl flex items-center justify-center" title="Esgotado"><i class="fa-solid fa-ban text-xs"></i></button>`
+            : isConsult
+              ? `<button onclick="consultProductWhatsApp('${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-3 h-9 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all duration-300" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-sm"></i><span>Consulte</span></button>`
+              : `<button onclick="addToCart(${p.id})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-10 h-9 rounded-xl flex items-center justify-center transition-all duration-300" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-xs"></i></button>`;
 
         return `
         <div class="bg-white border border-gray-200/90 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative">
@@ -1403,24 +1424,19 @@
             <div class="p-4 pb-3 cursor-pointer" onclick="openProductModal(${p.id})">
               <div class="flex justify-between items-center gap-1">
                   <span class="text-[9px] uppercase font-extrabold tracking-widest text-[#FF5500] bg-[#FF5500]/10 px-2 py-0.5 rounded">${p.subcategory || p.category}</span>
-                  ${!isOutOfStock && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
+                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
               </div>
               <h3 class="font-extrabold text-gray-900 text-sm mt-2 line-clamp-1 group-hover:text-[#FF5500] transition-colors">${p.title}</h3>
               <p class="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">${cleanDesc}</p>
             </div>
           </div>
 
-          <!-- Rodapé do Card com Preço Estilizado -->
+          <!-- Rodapé do Card com Preço Estilizado ou Botão Consulte -->
           <div class="px-4 pb-4 pt-3 flex items-center justify-between border-t border-gray-100 bg-gray-50/50">
-            <div>
-              <div class="flex items-baseline">
-                ${formatLuxuryPriceHTML(p.price, 'card')}
-              </div>
-              <span class="text-[10px] text-gray-500 font-medium block mt-0.5">10x de <strong class="text-gray-700">R$ ${installmentVal}</strong> s/ juros</span>
-            </div>
+            ${priceSectionHTML}
             <div class="flex items-center gap-1.5 relative z-20">
               <button onclick="openProductModal(${p.id})" class="bg-white hover:bg-gray-900 text-gray-700 hover:text-white border border-gray-200/90 hover:border-gray-900 w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm" title="Espiar Detalhes"><i class="fa-regular fa-eye text-xs"></i></button>
-              <button onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="${btnClass} w-10 h-9 rounded-xl flex items-center justify-center transition-all duration-300" title="Adicionar ao Carrinho" ${isOutOfStock ? 'disabled' : ''}><i class="fa-solid fa-cart-plus text-xs"></i></button>
+              ${mainActionButtonHTML}
             </div>
           </div>
         </div>
@@ -1433,28 +1449,62 @@
       const p = products.find(x => x.id === id);
       if (!p) return;
 
+      const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
+      const isConsult = !isOutOfStock && (Number(p.price || 0) === 0 || p.status === 'consulte');
       const cleanDesc = getCleanProductDescription(p);
 
       document.getElementById('modalProductImg').src = p.image;
       document.getElementById('modalProductCategory').innerText = p.subcategory || p.category;
       document.getElementById('modalProductTitle').innerText = p.title;
       document.getElementById('modalProductDesc').innerText = cleanDesc;
-      document.getElementById('modalProductPrice').innerHTML = formatLuxuryPriceHTML(p.price, 'modal');
-      document.getElementById('modalProductInstallments').innerText = `Em até 10x de R$ ${(Number(p.price || 0) / 10).toFixed(2).replace('.', ',')} sem juros no cartão`;
 
       const stockEl = document.getElementById('modalProductStock');
       const addBtn = document.getElementById('modalAddToCartBtn');
+      const priceEl = document.getElementById('modalProductPrice');
+      const installmentsEl = document.getElementById('modalProductInstallments');
+      const priceLabelEl = document.getElementById('modalPriceLabel');
+      const paymentTagEl = document.getElementById('modalPaymentTag');
+      const installmentIconEl = document.getElementById('modalInstallmentIcon');
       
-      if (p.stock <= 0) {
+      if (isOutOfStock) {
           stockEl.innerText = "ESGOTADO";
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-200";
+          priceLabelEl.innerText = "Indisponível no momento";
+          paymentTagEl.innerHTML = `<i class="fa-solid fa-ban text-[9px]"></i> Sem Estoque`;
+          paymentTagEl.className = "text-[10px] font-bold text-red-700 bg-red-100/80 px-2 py-0.5 rounded-md flex items-center gap-1";
+          priceEl.innerHTML = p.price > 0 ? formatLuxuryPriceHTML(p.price, 'modal') : `<span class="text-2xl font-black text-gray-400">Esgotado</span>`;
+          installmentIconEl.className = "fa-solid fa-circle-info text-gray-400 text-xs";
+          installmentsEl.innerText = "Produto temporariamente sem estoque";
           addBtn.disabled = true; 
-          addBtn.className = "w-full bg-gray-300 text-gray-500 font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed";
+          addBtn.innerHTML = `<i class="fa-solid fa-ban text-sm"></i> Produto Esgotado`;
+          addBtn.className = "w-full bg-gray-200 text-gray-500 font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed";
+          addBtn.onclick = null;
+      } else if (isConsult) {
+          stockEl.innerText = "SOB CONSULTA";
+          stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+          priceLabelEl.innerText = "Atendimento Personalizado";
+          paymentTagEl.innerHTML = `<i class="fa-brands fa-whatsapp text-[10px]"></i> Cotação Direta`;
+          paymentTagEl.className = "text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1";
+          priceEl.innerHTML = `<span class="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">Sob Consulta</span>`;
+          installmentIconEl.className = "fa-brands fa-whatsapp text-emerald-600 text-xs";
+          installmentsEl.innerText = "Consulte o valor atualizado e condições em até 10x";
+          addBtn.disabled = false; 
+          addBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-base"></i> Consultar Valor no WhatsApp`;
+          addBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-emerald-600/25";
+          addBtn.onclick = () => { consultProductWhatsApp(p.title); closeProductModal(); };
       } else {
           stockEl.innerText = `ESTOQUE: ${p.stock}`;
           stockEl.className = "text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+          priceLabelEl.innerText = "Valor exclusivo";
+          paymentTagEl.innerHTML = `<i class="fa-solid fa-bolt text-[9px]"></i> PIX ou Cartão`;
+          paymentTagEl.className = "text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md flex items-center gap-1";
+          priceEl.innerHTML = formatLuxuryPriceHTML(p.price, 'modal');
+          installmentIconEl.className = "fa-regular fa-credit-card text-[#FF5500] text-xs";
+          installmentsEl.innerText = `Em até 10x de R$ ${(Number(p.price || 0) / 10).toFixed(2).replace('.', ',')} sem juros no cartão`;
           addBtn.disabled = false; 
+          addBtn.innerHTML = `<i class="fa-solid fa-bag-shopping text-sm"></i> Adicionar ao Carrinho`;
           addBtn.className = "w-full bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-[#FF5500]/25";
+          addBtn.onclick = () => { addToCart(p.id); closeProductModal(); };
       }
 
       const thumbsContainer = document.getElementById('modalThumbnails');
@@ -1467,8 +1517,6 @@
           thumbsContainer.classList.add('hidden');
       }
 
-      document.getElementById('modalAddToCartBtn').onclick = () => { addToCart(p.id); closeProductModal(); };
-
       document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
     }
@@ -1477,8 +1525,11 @@
 
     function addToCart(id) {
       const p = products.find(x => x.id === id);
+      if (!p) return;
+      if (p.stock <= 0 || p.status === 'esgotado') return showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
+      if (Number(p.price || 0) === 0 || p.status === 'consulte') return consultProductWhatsApp(p.title);
+
       const ex = cart.find(x => x.id === id);
-      if (p.stock <= 0) return showToast('Produto Esgotado', 'Desculpe, este produto está sem estoque.', 'fa-circle-xmark', 'text-red-500', 'bg-red-500/20');
       if (ex) {
         if (ex.qty >= p.stock) return showToast('Estoque Limite', `Você já adicionou todo o estoque disponível (${p.stock}).`, 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
         ex.qty++;
