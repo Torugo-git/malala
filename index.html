@@ -245,7 +245,7 @@
   </section>
 
   <!-- GRID PRINCIPAL DE PRODUTOS -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main id="catalogMainSection" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 scroll-mt-24">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
         <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight" id="categoryTitle">Todas as Categorias</h2>
@@ -261,8 +261,13 @@
       </div>
     </div>
 
-    <!-- PRODUTOS GRID -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="productsGrid">
+    <!-- PRODUTOS GRID (2 COLUNAS NO CELULAR, 4 NO DESKTOP) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6" id="productsGrid">
+      <!-- Inserido via JS -->
+    </div>
+
+    <!-- CONTROLES DE PAGINAÇÃO -->
+    <div id="paginationContainer" class="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-6">
       <!-- Inserido via JS -->
     </div>
   </main>
@@ -599,7 +604,7 @@
         <i class="fa-solid fa-xmark text-sm"></i>
       </button>
 
-      <!-- SEÇÃO DA IMAGEM E MINIATURAS (FUNDO 100% BRANCO PURO) -->
+      <!-- SEÇÃO DA IMAGEM E MINIATURAS (FUNDO BRANCO PURO) -->
       <div class="md:w-1/2 bg-white relative flex flex-col justify-center shrink-0 border-b md:border-b-0 md:border-r border-gray-100">
         <div class="h-64 sm:h-80 relative flex items-center justify-center p-6 bg-white">
             <img id="modalProductImg" src="" alt="" class="max-w-full max-h-full object-contain transition-opacity duration-300">
@@ -624,7 +629,7 @@
 
           <div class="mt-4 p-2.5 sm:p-3 bg-emerald-50/70 border border-emerald-200/60 rounded-xl flex items-center gap-2 text-emerald-800 text-xs font-medium">
             <i class="fa-solid fa-shield-halved text-emerald-600 shrink-0"></i>
-            <span>Produto 100% original com garantia Malala Store</span>
+            <span>Produto original com garantia Malala Store</span>
           </div>
         </div>
 
@@ -771,7 +776,7 @@
       if (size === 'modal') {
         return `<span class="text-xs font-extrabold text-[#FF5500] mr-0.5 self-start mt-1.5">R$</span><span class="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-sm font-black text-gray-900 self-start mt-1">,${decPart}</span>`;
       }
-      return `<span class="text-[11px] font-extrabold text-[#FF5500] mr-0.5">R$</span><span class="text-xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-xs font-extrabold text-gray-700">,${decPart}</span>`;
+      return `<span class="text-[10px] sm:text-[11px] font-extrabold text-[#FF5500] mr-0.5">R$</span><span class="text-base sm:text-xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-[10px] sm:text-xs font-extrabold text-gray-700">,${decPart}</span>`;
     }
 
     function consultProductWhatsApp(title) {
@@ -885,6 +890,9 @@
 
     let currentCategory = 'Todos';
     let currentBrandFilter = null;
+    let currentPage = 1;
+    const itemsPerPage = 12;
+    let lastRenderedList = null;
     let cart = [];
 
     let auth = null;
@@ -1315,6 +1323,8 @@
     function selectCategory(catName) {
       currentCategory = catName;
       currentBrandFilter = null;
+      currentPage = 1;
+      lastRenderedList = null;
       document.getElementById('categoryTitle').innerText = catName === 'Todos' ? 'Todas as Categorias' : catName;
       document.getElementById('searchInput').value = '';
       if (document.getElementById('searchInputMobile')) document.getElementById('searchInputMobile').value = '';
@@ -1324,6 +1334,7 @@
 
     function filterByBrand(brandName) {
       currentBrandFilter = brandName;
+      currentPage = 1;
       const filtered = products.filter(p => p.title.toLowerCase().includes(brandName.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(brandName.toLowerCase()));
       document.getElementById('categoryTitle').innerText = `Busca por Marcas: ${brandName}`;
       renderCategories();
@@ -1337,7 +1348,8 @@
 
     function filterProducts() {
       const q = document.getElementById('searchInput').value.toLowerCase();
-      if (!q.trim()) { renderProducts(); return; }
+      currentPage = 1;
+      if (!q.trim()) { lastRenderedList = null; renderProducts(); return; }
       currentBrandFilter = null;
       const filtered = products.filter(p => p.title.toLowerCase().includes(q) || getCleanProductDescription(p).toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
       document.getElementById('categoryTitle').innerText = `Resultados para: "${q}"`;
@@ -1346,6 +1358,7 @@
 
     function sortProducts() {
       const v = document.getElementById('sortSelect').value;
+      currentPage = 1;
       let list;
       if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(currentBrandFilter.toLowerCase()));
       else list = currentCategory === 'Todos' ? [...products] : products.filter(p => p.category === currentCategory);
@@ -1355,17 +1368,83 @@
       renderProducts(list);
     }
 
-    function renderProducts(customList = null) {
+    function goToPage(page) {
+      currentPage = page;
+      renderProducts(lastRenderedList, false);
+      const section = document.getElementById('catalogMainSection');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderPagination(totalItems, totalPages) {
+      const container = document.getElementById('paginationContainer');
+      if (!container) return;
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+
+      const startItem = (currentPage - 1) * itemsPerPage + 1;
+      const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+      let pagesHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+          const activeClass = i === currentPage
+            ? 'bg-[#FF5500] text-white border-[#FF5500] shadow-md shadow-[#FF5500]/25'
+            : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF5500] hover:text-[#FF5500]';
+          pagesHTML += `<button onclick="goToPage(${i})" class="w-9 h-9 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center ${activeClass}">${i}</button>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+          pagesHTML += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+        }
+      }
+
+      container.innerHTML = `
+        <p class="text-xs text-gray-500 font-medium">
+          Mostrando <strong class="text-gray-900">${startItem}–${endItem}</strong> de <strong class="text-gray-900">${totalItems}</strong> produtos
+        </p>
+        <div class="flex items-center gap-1.5 flex-wrap justify-center">
+          <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-3 h-9 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF5500] hover:text-[#FF5500]'}">
+            <i class="fa-solid fa-chevron-left text-[10px]"></i>
+            <span class="hidden sm:inline">Anterior</span>
+          </button>
+          ${pagesHTML}
+          <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 h-9 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF5500] hover:text-[#FF5500]'}">
+            <span class="hidden sm:inline">Próxima</span>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderProducts(customList = null, resetListCache = true) {
       const grid = document.getElementById('productsGrid');
+      const paginationContainer = document.getElementById('paginationContainer');
       let list = customList;
+
       if (!list) {
           if (currentBrandFilter) list = products.filter(p => p.title.toLowerCase().includes(currentBrandFilter.toLowerCase()) || getCleanProductDescription(p).toLowerCase().includes(currentBrandFilter.toLowerCase()));
           else list = currentCategory === 'Todos' ? products : products.filter(p => p.category === currentCategory);
       }
 
-      document.getElementById('productsCountText').innerText = `Exibindo ${list.length} produto(s)`;
+      if (resetListCache) {
+        lastRenderedList = list;
+      }
 
-      if (list.length === 0) {
+      const totalItems = list.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedList = list.slice(startIndex, startIndex + itemsPerPage);
+
+      document.getElementById('productsCountText').innerText = `Exibindo ${paginatedList.length} de ${totalItems} produto(s) • Página ${currentPage} de ${totalPages}`;
+
+      if (totalItems === 0) {
         grid.innerHTML = `
           <div class="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300">
             <i class="fa-solid fa-magnifying-glass text-3xl text-gray-300 mb-2"></i>
@@ -1374,72 +1453,75 @@
             <button onclick="selectCategory('Todos')" class="mt-4 px-4 py-2 bg-[#FF5500] text-white text-xs font-bold rounded-xl shadow-md">Ver todos os produtos</button>
           </div>
         `;
+        if (paginationContainer) paginationContainer.classList.add('hidden');
         return;
       }
 
-      grid.innerHTML = list.map(p => {
+      grid.innerHTML = paginatedList.map(p => {
         const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
         const isConsult = !isOutOfStock && (Number(p.price || 0) === 0 || p.status === 'consulte');
         const cleanDesc = getCleanProductDescription(p);
         const safeTitle = String(p.title || '').replace(/'/g, "\\'");
 
         const stockBadge = isOutOfStock 
-            ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-xs px-4 py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
+            ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-[10px] sm:text-xs px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
             : '';
 
         const priceSectionHTML = isConsult
-            ? `<div>
-                 <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Sob Consulta</span>
-                 <span class="text-sm font-black text-gray-900 block leading-tight mt-0.5">Valor no WhatsApp</span>
+            ? `<div class="min-w-0">
+                 <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Sob Consulta</span>
+                 <span class="text-xs sm:text-sm font-black text-gray-900 block leading-tight mt-0.5 truncate">No WhatsApp</span>
                </div>`
-            : `<div>
+            : `<div class="min-w-0">
                  <div class="flex items-baseline">
                    ${formatLuxuryPriceHTML(p.price, 'card')}
                  </div>
-                 <span class="text-[10px] text-gray-500 font-medium block mt-0.5"><i class="fa-solid fa-bolt text-[#FF5500] text-[9px]"></i> No PIX ou Cartão</span>
+                 <span class="text-[9px] sm:text-[10px] text-gray-500 font-medium block mt-0.5 truncate"><i class="fa-solid fa-bolt text-[#FF5500] text-[8px] sm:text-[9px]"></i> PIX ou Cartão</span>
                </div>`;
 
         const mainActionButtonHTML = isOutOfStock
-            ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed w-10 h-9 rounded-xl flex items-center justify-center" title="Esgotado"><i class="fa-solid fa-ban text-xs"></i></button>`
+            ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center shrink-0" title="Esgotado"><i class="fa-solid fa-ban text-[11px] sm:text-xs"></i></button>`
             : isConsult
-              ? `<button onclick="consultProductWhatsApp('${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-3 h-9 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all duration-300" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-sm"></i><span>Consulte</span></button>`
-              : `<button onclick="addToCart(${p.id})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-10 h-9 rounded-xl flex items-center justify-center transition-all duration-300" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-xs"></i></button>`;
+              ? `<button onclick="consultProductWhatsApp('${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-2 sm:px-3 h-8 sm:h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-bold transition-all duration-300 shrink-0" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-xs sm:text-sm"></i><span class="hidden sm:inline">Consulte</span></button>`
+              : `<button onclick="addToCart(${p.id})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-[11px] sm:text-xs"></i></button>`;
 
         return `
         <div class="bg-white border border-gray-200/90 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative">
           ${stockBadge}
           <div>
-            <!-- Container da imagem com fundo 100% branco puro -->
-            <div class="relative h-56 bg-white overflow-hidden cursor-pointer flex items-center justify-center p-4 border-b border-gray-100" onclick="openProductModal(${p.id})">
+            <!-- Container da imagem responsivo (h-36 no celular para caber 2 por linha com elegância, h-56 no desktop) -->
+            <div class="relative h-36 sm:h-56 bg-white overflow-hidden cursor-pointer flex items-center justify-center p-2.5 sm:p-4 border-b border-gray-100" onclick="openProductModal(${p.id})">
               <img src="${p.image}" alt="${p.title}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500">
               
               <!-- Botão Espiar Dark Glassmorphism -->
-              <button type="button" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-gray-900/85 hover:bg-[#FF5500] text-white text-[11px] font-bold tracking-wide px-4 py-1.5 rounded-full shadow-xl backdrop-blur-md flex items-center gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20 whitespace-nowrap">
-                <i class="fa-regular fa-eye text-[#FF5500] group-hover:text-white text-xs"></i>
-                <span>Espiar Produto</span>
+              <button type="button" class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-gray-900/85 hover:bg-[#FF5500] text-white text-[10px] sm:text-[11px] font-bold tracking-wide px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-xl backdrop-blur-md flex items-center gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20 whitespace-nowrap">
+                <i class="fa-regular fa-eye text-[#FF5500] group-hover:text-white text-[10px] sm:text-xs"></i>
+                <span>Espiar</span>
               </button>
             </div>
 
-            <div class="p-4 pb-3 cursor-pointer" onclick="openProductModal(${p.id})">
-              <div class="flex justify-between items-center gap-1">
-                  <span class="text-[9px] uppercase font-extrabold tracking-widest text-[#FF5500] bg-[#FF5500]/10 px-2 py-0.5 rounded">${p.subcategory || p.category}</span>
-                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
+            <div class="p-2.5 sm:p-4 pb-2 sm:pb-3 cursor-pointer" onclick="openProductModal(${p.id})">
+              <div class="flex justify-between items-center gap-1 flex-wrap">
+                  <span class="text-[8px] sm:text-[9px] uppercase font-extrabold tracking-wider sm:tracking-widest text-[#FF5500] bg-[#FF5500]/10 px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">${p.subcategory || p.category}</span>
+                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="hidden sm:inline-block text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
               </div>
-              <h3 class="font-extrabold text-gray-900 text-sm mt-2 line-clamp-1 group-hover:text-[#FF5500] transition-colors">${p.title}</h3>
-              <p class="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">${cleanDesc}</p>
+              <h3 class="font-extrabold text-gray-900 text-xs sm:text-sm mt-1.5 sm:mt-2 line-clamp-2 sm:line-clamp-1 group-hover:text-[#FF5500] transition-colors leading-snug">${p.title}</h3>
+              <p class="text-[10px] sm:text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed hidden sm:block">${cleanDesc}</p>
             </div>
           </div>
 
-          <!-- Rodapé do Card com Preço Estilizado ou Botão Consulte -->
-          <div class="px-4 pb-4 pt-3 flex items-center justify-between border-t border-gray-100 bg-gray-50/50">
+          <!-- Rodapé do Card otimizado para 2 colunas no mobile -->
+          <div class="px-2.5 sm:px-4 pb-2.5 sm:pb-4 pt-2 sm:pt-3 flex items-center justify-between gap-1 border-t border-gray-100 bg-gray-50/50">
             ${priceSectionHTML}
-            <div class="flex items-center gap-1.5 relative z-20">
-              <button onclick="openProductModal(${p.id})" class="bg-white hover:bg-gray-900 text-gray-700 hover:text-white border border-gray-200/90 hover:border-gray-900 w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm" title="Espiar Detalhes"><i class="fa-regular fa-eye text-xs"></i></button>
+            <div class="flex items-center gap-1 sm:gap-1.5 relative z-20 shrink-0">
+              <button onclick="openProductModal(${p.id})" class="bg-white hover:bg-gray-900 text-gray-700 hover:text-white border border-gray-200/90 hover:border-gray-900 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all shadow-sm" title="Espiar Detalhes"><i class="fa-regular fa-eye text-[11px] sm:text-xs"></i></button>
               ${mainActionButtonHTML}
             </div>
           </div>
         </div>
       `}).join('');
+
+      renderPagination(totalItems, totalPages);
     }
 
     function setModalImage(url) { document.getElementById('modalProductImg').src = url; }
