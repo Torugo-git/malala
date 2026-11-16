@@ -57,9 +57,12 @@ function isValidCPF(cpf) {
     return rest(10) === cpfNumbers[9] && rest(11) === cpfNumbers[10];
 }
 
-// FUNÇÃO DE VALIDAÇÃO DUPLA DE ESTOQUE
-async function validateStockBeforeCheckout(requestedItems) {
+// FUNÇÃO DE VALIDAÇÃO DUPLA DE ESTOQUE E PREÇO OFICIAL DO BANCO
+async function validateAndSanitizeItems(requestedItems) {
     if (!db) throw new Error("Banco de dados indisponível.");
+    if (!Array.isArray(requestedItems) || requestedItems.length === 0) {
+        return { valid: false, error: "O carrinho está vazio ou em formato inválido." };
+    }
     
     const docRef = db.collection('malala_store').doc('catalog');
     const docSnap = await docRef.get();
@@ -69,20 +72,41 @@ async function validateStockBeforeCheckout(requestedItems) {
     }
     
     const catalog = docSnap.data().products;
+    const sanitizedItems = [];
     
     for (let item of requestedItems) {
+        const qty = parseInt(item.quantity, 10);
+        if (isNaN(qty) || qty < 1) {
+            return { valid: false, error: `Quantidade inválida para o item "${item.title || item.id}".` };
+        }
+
         const productInDb = catalog.find(p => String(p.id) === String(item.id));
         if (!productInDb) {
-            return { valid: false, error: `Produto "${item.title}" não existe mais no catálogo.` };
+            return { valid: false, error: `Produto "${item.title || item.id}" não existe mais no catálogo.` };
         }
-        if (productInDb.stock < item.quantity) {
+        if (productInDb.stock < qty) {
             return { 
                 valid: false, 
-                error: `O produto "${item.title}" esgotou ou não tem a quantidade solicitada (Estoque atual: ${productInDb.stock}).` 
+                error: `O produto "${productInDb.title}" esgotou ou não tem a quantidade solicitada (Estoque disponível: ${productInDb.stock}).` 
             };
         }
+
+        const officialPrice = Number(parseFloat(productInDb.price).toFixed(2));
+        if (isNaN(officialPrice) || officialPrice <= 0) {
+            return {
+                valid: false,
+                error: `O produto "${productInDb.title}" está sob consulta e não pode ser finalizado diretamente pelo checkout.`
+            };
+        }
+
+        sanitizedItems.push({
+            id: String(productInDb.id),
+            title: String(productInDb.title),
+            quantity: qty,
+            price: officialPrice
+        });
     }
-    return { valid: true };
+    return { valid: true, sanitizedItems };
 }
 
 // ROTA 1: PIX
@@ -91,29 +115,30 @@ app.post('/api/payments/pix', async (req, res) => {
     const { items, payer, shippingAddress } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
-    if (payer && payer.identification && payer.identification.type === 'CPF') {
-      if (!isValidCPF(payer.identification.number)) {
-        return res.status(400).json({ error: 'CPF inválido.' });
-      }
+    if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
+      return res.status(400).json({ error: 'Dados do comprador ou CPF inválidos.' });
     }
 
-    const stockValidation = await validateStockBeforeCheckout(items);
+    const stockValidation = await validateAndSanitizeItems(items);
     if (!stockValidation.valid) {
         return res.status(409).json({ error: stockValidation.error });
     }
 
-    const totalAmount = items.reduce((acc, item) => acc + (parseFloat(item.price) * parseInt(item.quantity)), 0);
+    const officialItems = stockValidation.sanitizedItems;
+    const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+    const cleanEmail = String(payer.email).trim().toLowerCase();
+    const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
     let orderId = 'ORD-' + Date.now();
 
     try {
       const orderRef = await db.collection('orders').add({
         payer: {
-          name: payer.first_name + ' ' + (payer.last_name || ''),
-          email: payer.email,
-          cpf: payer.identification ? payer.identification.number : '',
+          name: `${String(payer.first_name).trim()} ${String(payer.last_name || '').trim()}`.trim(),
+          email: cleanEmail,
+          cpf: cleanCpf,
           address: payer.address || shippingAddress || null
         },
-        items,
+        items: officialItems,
         totalAmount,
         paymentMethod: 'pix',
         status: 'Pendente',
@@ -128,16 +153,16 @@ app.post('/api/payments/pix', async (req, res) => {
     
     const paymentData = {
       body: {
-        transaction_amount: Number(totalAmount.toFixed(2)),
+        transaction_amount: totalAmount,
         description: `Pedido Malala Store #${orderId}`,
         payment_method_id: 'pix',
         payer: {
-          email: payer.email,
-          first_name: payer.first_name,
-          last_name: payer.last_name || 'Cliente',
+          email: cleanEmail,
+          first_name: String(payer.first_name).trim(),
+          last_name: String(payer.last_name || 'Cliente').trim(),
           identification: {
-            type: payer.identification.type || 'CPF',
-            number: payer.identification.number.replace(/\D/g, '')
+            type: 'CPF',
+            number: cleanCpf
           }
         },
         external_reference: orderId,
@@ -173,29 +198,30 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     const { items, payer, shippingAddress } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
-    if (payer && payer.identification && payer.identification.type === 'CPF') {
-      if (!isValidCPF(payer.identification.number)) {
-        return res.status(400).json({ error: 'CPF inválido.' });
-      }
+    if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
+      return res.status(400).json({ error: 'Dados do comprador ou CPF inválidos.' });
     }
 
-    const stockValidation = await validateStockBeforeCheckout(items);
+    const stockValidation = await validateAndSanitizeItems(items);
     if (!stockValidation.valid) {
         return res.status(409).json({ error: stockValidation.error });
     }
 
-    const totalAmount = items.reduce((acc, item) => acc + (parseFloat(item.price) * parseInt(item.quantity)), 0);
+    const officialItems = stockValidation.sanitizedItems;
+    const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+    const cleanEmail = String(payer.email).trim().toLowerCase();
+    const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
     let orderId = 'ORD-' + Date.now();
 
     try {
       const orderRef = await db.collection('orders').add({
         payer: {
-          name: payer.first_name + ' ' + (payer.last_name || ''),
-          email: payer.email,
-          cpf: payer.identification ? payer.identification.number : '',
+          name: `${String(payer.first_name).trim()} ${String(payer.last_name || '').trim()}`.trim(),
+          email: cleanEmail,
+          cpf: cleanCpf,
           address: payer.address || shippingAddress || null
         },
-        items,
+        items: officialItems,
         totalAmount,
         paymentMethod: 'mercado_pago_pro',
         status: 'Pendente',
@@ -207,25 +233,24 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     }
 
     const backendUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
-    const frontendUrl = req.headers.origin || 'http://localhost:5500'; // Or whatever your frontend URL is
 
-    const preferenceItems = items.map(item => ({
+    const preferenceItems = officialItems.map(item => ({
       id: String(item.id),
       title: item.title,
-      quantity: parseInt(item.quantity),
-      unit_price: Number(parseFloat(item.price).toFixed(2))
+      quantity: item.quantity,
+      unit_price: item.price
     }));
 
     const preferenceData = {
       body: {
         items: preferenceItems,
         payer: {
-          name: payer.first_name,
-          surname: payer.last_name || 'Cliente',
-          email: payer.email,
+          name: String(payer.first_name).trim(),
+          surname: String(payer.last_name || 'Cliente').trim(),
+          email: cleanEmail,
           identification: {
-            type: payer.identification.type || 'CPF',
-            number: payer.identification.number.replace(/\D/g, '')
+            type: 'CPF',
+            number: cleanCpf
           }
         },
         back_urls: {
@@ -238,7 +263,7 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
         notification_url: `${backendUrl}/api/webhooks/mercadopago`,
         payment_methods: {
           excluded_payment_methods: [],
-          excluded_payment_types: [{ id: "ticket" }], // Optional: exclude boleto if you only want cards/pix here
+          excluded_payment_types: [{ id: "ticket" }],
           installments: 10
         }
       }
@@ -289,9 +314,10 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
 
   try {
     const { type, data } = req.body;
+    const paymentId = (data && data.id) || req.query['data.id'];
+    const topic = type || req.query.type || req.query.topic;
     
-    if (type === 'payment' && data && data.id) {
-      const paymentId = data.id;
+    if ((topic === 'payment' || topic === 'payment.updated' || topic === 'payment.created') && paymentId) {
       const paymentInfo = await paymentClient.get({ id: paymentId });
       
       const orderId = paymentInfo.external_reference;
@@ -300,78 +326,94 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
       if (!orderId || !db) return;
 
       const orderRef = db.collection('orders').doc(orderId);
-      const orderSnap = await orderRef.get();
+      const catalogRef = db.collection('malala_store').doc('catalog');
 
-      if (orderSnap.exists) {
-        const orderData = orderSnap.data();
-        
-        if (status === 'approved' && orderData.status !== 'Pago') {
-          await orderRef.update({
+      if (status === 'approved') {
+        let orderJustApproved = null;
+
+        await db.runTransaction(async (transaction) => {
+          const orderSnap = await transaction.get(orderRef);
+          if (!orderSnap.exists) return;
+
+          const orderData = orderSnap.data();
+          if (orderData.status === 'Pago') {
+            return; // Idempotência: evita desconto duplicado de estoque
+          }
+
+          const catalogSnap = await transaction.get(catalogRef);
+          if (catalogSnap.exists && catalogSnap.data().products) {
+            let catProducts = catalogSnap.data().products;
+            let changed = false;
+
+            (orderData.items || []).forEach(item => {
+              const p = catProducts.find(x => String(x.id) === String(item.id));
+              if (p && p.stock !== undefined) {
+                p.stock = Math.max(0, p.stock - (item.quantity || 1));
+                changed = true;
+              }
+            });
+
+            if (changed) {
+              transaction.update(catalogRef, {
+                products: catProducts,
+                updatedAt: FieldValue.serverTimestamp()
+              });
+            }
+          }
+
+          transaction.update(orderRef, {
             status: 'Pago',
             updatedAt: FieldValue.serverTimestamp()
           });
 
-          const catalogRef = db.collection('malala_store').doc('catalog');
-          
-          await db.runTransaction(async (transaction) => {
-            const catalogSnap = await transaction.get(catalogRef);
-            if (catalogSnap.exists && catalogSnap.data().products) {
-              let catProducts = catalogSnap.data().products;
-              let changed = false;
+          orderJustApproved = orderData;
+        });
 
-              orderData.items.forEach(item => {
-                const p = catProducts.find(x => String(x.id) === String(item.id));
-                if (p && p.stock !== undefined) {
-                  p.stock = Math.max(0, p.stock - item.quantity);
-                  changed = true;
-                }
-              });
-
-              if (changed) {
-                transaction.update(catalogRef, {
-                  products: catProducts,
-                  updatedAt: FieldValue.serverTimestamp()
-                });
-              }
-            }
-          });
-          console.log(`✅ [WEBHOOK] Pedido ${orderId} aprovado e stock reduzido!`);
+        if (orderJustApproved) {
+          console.log(`✅ [WEBHOOK] Pedido ${orderId} aprovado e estoque reduzido com sucesso!`);
 
           // Enviar email de confirmação via EmailJS
           try {
-            const payerEmail = orderData.payer.email;
-            const orderSummaryText = orderData.items.map(i => `${i.quantity || i.qty}x ${i.title}`).join(', ');
+            const payerEmail = orderJustApproved.payer.email;
+            const orderSummaryText = (orderJustApproved.items || []).map(i => `${i.quantity || i.qty}x ${i.title}`).join(', ');
+            const emailjsPrivateKey = process.env.EMAILJS_PRIVATE_KEY;
 
-            const emailjsPayload = {
-              service_id: 'service_fvb6yhg',
-              template_id: 'template_n10dl83',
-              user_id: 'vI8slPfRAcF3rOg0P',
-              accessToken: process.env.EMAILJS_PRIVATE_KEY || 'mkUCD7krKBjjxbAU75nmO',
-              template_params: {
-                email: payerEmail,
-                order_id: orderId,
-                order_summary: orderSummaryText
-              }
-            };
-
-            const emailjsRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(emailjsPayload)
-            });
-
-            if (emailjsRes.ok) {
-              console.log(`✉️ [EMAIL] Confirmação enviada para ${payerEmail}`);
+            if (!emailjsPrivateKey) {
+              console.warn('⚠️ [EMAIL] EMAILJS_PRIVATE_KEY não configurada nas variáveis de ambiente.');
             } else {
-              const errText = await emailjsRes.text();
-              console.error(`❌ [EMAIL] Falha ao enviar para ${payerEmail}:`, errText);
+              const emailjsPayload = {
+                service_id: process.env.EMAILJS_SERVICE_ID || 'service_fvb6yhg',
+                template_id: process.env.EMAILJS_TEMPLATE_ID || 'template_n10dl83',
+                user_id: process.env.EMAILJS_PUBLIC_KEY || 'vI8slPfRAcF3rOg0P',
+                accessToken: emailjsPrivateKey,
+                template_params: {
+                  email: payerEmail,
+                  order_id: orderId,
+                  order_summary: orderSummaryText
+                }
+              };
+
+              const emailjsRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(emailjsPayload)
+              });
+
+              if (emailjsRes.ok) {
+                console.log(`✉️ [EMAIL] Confirmação enviada para ${payerEmail}`);
+              } else {
+                const errText = await emailjsRes.text();
+                console.error(`❌ [EMAIL] Falha ao enviar para ${payerEmail}:`, errText);
+              }
             }
           } catch (emailErr) {
             console.error('❌ Erro na chamada ao EmailJS:', emailErr);
           }
-
-        } else if (status === 'cancelled' || status === 'rejected') {
-           await orderRef.update({
+        }
+      } else if (status === 'cancelled' || status === 'rejected') {
+        const orderSnap = await orderRef.get();
+        if (orderSnap.exists && orderSnap.data().status !== 'Pago') {
+          await orderRef.update({
             status: 'Cancelado',
             updatedAt: FieldValue.serverTimestamp()
           });

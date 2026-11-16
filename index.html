@@ -6,10 +6,12 @@
   
   <!-- SEO & OPEN GRAPH (PARTILHA NO WHATSAPP/INSTAGRAM) -->
   <title>MALALA STORE | Tecnologia • Beleza • Perfumes</title>
+  <link rel="icon" type="image/png" href="logo-circle.png">
   <meta name="description" content="Sua loja referência em Tecnologia, Produtos de Beleza e Perfumaria Importada e Árabe. Vai comprando & recebendo com entrega rápida e segura.">
   <meta property="og:title" content="MALALA STORE | Produtos Exclusivos">
   <meta property="og:description" content="Tecnologia, Beleza e Perfumaria Importada. Pagamento fácil no Cartão ou aprovação na hora no PIX.">
-  <meta property="og:image" content="https://seusite.com/logo-banner.png">
+  <meta property="og:image" content="https://www.malalastore.com.br/logo-banner.png">
+  <meta property="og:url" content="https://www.malalastore.com.br/">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#FF5500">
 
@@ -564,6 +566,26 @@
         </div>
       </div>
 
+      <!-- PASSO 3: PAGAMENTO CONFIRMADO -->
+      <div id="paymentApprovedStep" class="hidden text-center space-y-4 py-4">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner border border-emerald-200">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <h4 class="text-lg font-black text-gray-900">Pagamento Aprovado! 🎉</h4>
+          <p class="text-xs text-gray-600 mt-1">Seu pedido <strong id="approvedOrderId" class="font-mono text-gray-900"></strong> foi confirmado com sucesso.</p>
+          <p class="text-[11px] text-gray-400 mt-1">Enviamos a confirmação com o resumo da compra para o seu e-mail.</p>
+        </div>
+        <div class="pt-3 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
+          <button type="button" onclick="handlePostPaymentTrack()" class="flex-1 bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20">
+            <i class="fa-solid fa-box-open mr-1"></i> Acompanhar Pedido
+          </button>
+          <button type="button" onclick="closeCheckoutModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-xs transition-all">
+            Continuar na Loja
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -811,18 +833,19 @@
 
     let db = null;
 
-    function initFirebaseClient() {
-      let config = defaultFirebaseConfig;
-      const savedCfg = localStorage.getItem('malala_firebase_config');
-      if (savedCfg) {
-        try { config = JSON.parse(savedCfg); } catch(e) {}
-      }
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
+    function initFirebaseClient() {
       try {
-        if (config && config.apiKey && config.apiKey !== "SUA_API_KEY") {
-          if (!firebase.apps.length) firebase.initializeApp(config);
-          db = firebase.firestore();
-        }
+        if (!firebase.apps.length) firebase.initializeApp(defaultFirebaseConfig);
+        db = firebase.firestore();
       } catch(e) { console.warn("Erro ao inicializar Firebase:", e); }
     }
 
@@ -867,16 +890,21 @@
       let changed = false;
       cart.forEach(item => {
         const p = products.find(x => x.id === item.id);
-        if (p && item.qty > p.stock) {
-          item.qty = p.stock;
-          changed = true;
-          if(p.stock === 0) {
-              cart = cart.filter(x => x.id !== p.id);
+        if (p) {
+          item.price = p.price;
+          item.title = p.title;
+          item.image = p.image;
+          if (item.qty > p.stock) {
+            item.qty = p.stock;
+            changed = true;
+            if(p.stock === 0) {
+                cart = cart.filter(x => x.id !== p.id);
+            }
           }
         }
       });
+      updateCart();
       if (changed) {
-          updateCart();
           showToast('Carrinho Atualizado', 'Alguns itens tiveram a quantidade ajustada devido ao estoque.', 'fa-triangle-exclamation', 'text-amber-500', 'bg-amber-500/20');
       }
     }
@@ -894,11 +922,16 @@
     const itemsPerPage = 12;
     let lastRenderedList = null;
     let cart = [];
+    try {
+      const savedCart = JSON.parse(localStorage.getItem('malala_cart') || '[]');
+      if (Array.isArray(savedCart)) cart = savedCart;
+    } catch(e) { cart = []; }
 
     let auth = null;
     let currentUser = null;
     let isRegisterMode = false;
     let selectedPayMethod = 'pix';
+    let lastCheckoutEmail = '';
 
     function initFirebaseAuth() {
       if (firebase.apps && firebase.apps.length) {
@@ -914,6 +947,7 @@
               document.getElementById('authBtnLabel').innerText = currentUser.displayName.split(' ')[0];
             } else {
               currentUser = null;
+              document.getElementById('authBtnLabel').innerText = 'Entrar';
             }
           });
         } catch(e) {
@@ -962,7 +996,7 @@
     }
 
     async function handlePasswordReset() {
-      const email = document.getElementById('authEmail').value;
+      const email = document.getElementById('authEmail').value.trim().toLowerCase();
       if (!email) {
         alert('Por favor, digite o seu e-mail no campo acima e clique em "Esqueceu a senha?".');
         return;
@@ -978,9 +1012,9 @@
 
     async function handleAuthSubmit(e) {
       e.preventDefault();
-      const email = document.getElementById('authEmail').value;
+      const email = document.getElementById('authEmail').value.trim().toLowerCase();
       const pass = document.getElementById('authPassword').value;
-      const name = document.getElementById('authName').value || email.split('@')[0];
+      const name = document.getElementById('authName').value.trim() || email.split('@')[0];
 
       try {
         if (auth) {
@@ -998,7 +1032,7 @@
             const user = userCred.user;
             if (!user.emailVerified) {
               await auth.signOut();
-              alert(`Acesso bloqueado. Ainda não confirmou o e-mail ${email}.`);
+              alert(`Acesso bloqueado. Confirme o link enviado para o e-mail ${email}.`);
               return;
             }
             currentUser = { email: user.email, displayName: user.displayName || name, uid: user.uid };
@@ -1009,7 +1043,7 @@
           }
         }
       } catch (err) {
-        alert('Erro ao fazer login ou registo. Verifique os seus dados.');
+        alert('Erro ao fazer login ou cadastro. Verifique seus dados.');
         return; 
       }
     }
@@ -1087,12 +1121,25 @@
 
       document.getElementById('checkoutFormStep').classList.remove('hidden');
       document.getElementById('pixResultStep').classList.add('hidden');
+      document.getElementById('paymentApprovedStep').classList.add('hidden');
       document.getElementById('checkoutModal').classList.remove('hidden');
     }
 
     function closeCheckoutModal() {
       if (pixPollingInterval) clearInterval(pixPollingInterval);
       document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    function handlePostPaymentTrack() {
+      closeCheckoutModal();
+      if (currentUser) {
+        window.location.href = 'minha-conta.html';
+      } else {
+        if (lastCheckoutEmail) {
+          document.getElementById('authEmail').value = lastCheckoutEmail;
+        }
+        openAuthModal();
+      }
     }
 
     function togglePayMethodUI(method) {
@@ -1114,11 +1161,14 @@
 
         if (data.status === 'Pago') {
           clearInterval(pixPollingInterval);
-          window.location.href = 'https://www.malalastore.com.br/minha-conta.html';
+          document.getElementById('pixResultStep').classList.add('hidden');
+          document.getElementById('approvedOrderId').innerText = `#${orderId}`;
+          document.getElementById('paymentApprovedStep').classList.remove('hidden');
+          showToast('Pagamento Confirmado!', 'Seu pedido foi aprovado com sucesso!');
         } else if (data.status === 'Cancelado') {
            clearInterval(pixPollingInterval);
            alert('Este pedido foi cancelado.');
-           window.location.href = 'https://www.malalastore.com.br/index.html';
+           closeCheckoutModal();
         }
       } catch (err) {
         console.warn('Erro ao verificar status do PIX:', err);
@@ -1135,14 +1185,23 @@
           return;
       }
 
-      const firstName = document.getElementById('payFirstName').value;
-      const lastName = document.getElementById('payLastName').value;
-      const email = document.getElementById('payEmail').value;
-      const street = document.getElementById('payStreet').value;
-      const number = document.getElementById('payNumber').value;
-      const neighborhood = document.getElementById('payNeighborhood').value;
-      const city = document.getElementById('payCity').value;
-      const cep = document.getElementById('payCep').value;
+      const cepValue = document.getElementById('payCep').value;
+      if (cepValue.replace(/\D/g, '').length !== 8) {
+          alert('Por favor, informe um CEP válido de 8 dígitos.');
+          document.getElementById('payCep').focus();
+          return;
+      }
+
+      const firstName = document.getElementById('payFirstName').value.trim();
+      const lastName = document.getElementById('payLastName').value.trim();
+      const email = document.getElementById('payEmail').value.trim().toLowerCase();
+      const street = document.getElementById('payStreet').value.trim();
+      const number = document.getElementById('payNumber').value.trim();
+      const neighborhood = document.getElementById('payNeighborhood').value.trim();
+      const city = document.getElementById('payCity').value.trim();
+      const cep = cepValue.trim();
+
+      lastCheckoutEmail = email;
 
       const shippingAddress = { cep, street, number, neighborhood, city };
       const payerData = {
@@ -1161,115 +1220,74 @@
       btn.classList.replace('bg-emerald-600', 'bg-gray-400');
       btn.classList.replace('hover:bg-emerald-500', 'hover:bg-gray-500');
 
+      const backendUrl = 'https://malala-backend-1.onrender.com';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       try {
-       const backendUrl = 'https://malala-backend-1.onrender.com';
-       const controller = new AbortController();
-       const timeoutId = setTimeout(() => controller.abort(), 60000);
-
         if (selectedPayMethod === 'pix') {
-          try {
-            const res = await fetch(`${backendUrl}/api/payments/pix`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: formattedItems, payer: payerData }),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+          const res = await fetch(`${backendUrl}/api/payments/pix`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: formattedItems, payer: payerData }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            alert(data.error || 'Não foi possível gerar o pagamento PIX no momento. Verifique os dados informados.');
+            return;
+          }
+
+          if (data.success && data.qrCodeBase64) {
+            document.getElementById('pixQrCodeImg').src = `data:image/jpeg;base64,${data.qrCodeBase64}`;
+            document.getElementById('pixCopyPasteInput').value = data.qrCodeCopyPaste;
+            document.getElementById('checkoutFormStep').classList.add('hidden');
+            document.getElementById('pixResultStep').classList.remove('hidden');
             
-            if (res.status === 409) {
-                const errorData = await res.json();
-                alert(`Ops! ${errorData.error}`);
-                throw new Error("Estoque insuficiente");
-            }
-            
-            const data = await res.json();
+            cart = []; updateCart();
+            showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
 
-            if (data.success && data.qrCodeBase64) {
-              document.getElementById('pixQrCodeImg').src = `data:image/jpeg;base64,${data.qrCodeBase64}`;
-              document.getElementById('pixCopyPasteInput').value = data.qrCodeCopyPaste;
-              document.getElementById('checkoutFormStep').classList.add('hidden');
-              document.getElementById('pixResultStep').classList.remove('hidden');
-              
-              cart = []; updateCart();
-              showToast('PIX Gerado!', 'Utilize o QR Code ou Copia e Cola para pagar.');
-
-              if (pixPollingInterval) clearInterval(pixPollingInterval);
-              pixPollingInterval = setInterval(() => {
-                checkPixStatus(data.orderId, backendUrl);
-              }, 4000);
-
-              return;
-            }
-          } catch(fetchErr) {
-            clearTimeout(timeoutId);
-            if (fetchErr.name === 'AbortError') {
-              btn.disabled = false;
-              if (selectedPayMethod === 'pix') {
-                btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
-              } else {
-                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar Online via Mercado Pago';
-              }
-              btn.classList.replace('bg-gray-400', 'bg-emerald-600');
-              btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
-              alert('O servidor demorou muito para responder. Por favor, tente novamente.');
-              throw new Error("Timeout na comunicação com o servidor.");
-            }
-            console.warn('Erro na requisição PIX:', fetchErr);
-            throw fetchErr;
+            if (pixPollingInterval) clearInterval(pixPollingInterval);
+            pixPollingInterval = setInterval(() => {
+              checkPixStatus(data.orderId, backendUrl);
+            }, 4000);
+          } else {
+            alert('Falha ao obter o QR Code do PIX. Por favor, tente novamente.');
           }
 
         } else {
-          try {
-            const res = await fetch(`${backendUrl}/api/payments/checkout-pro`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: formattedItems, payer: payerData }),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            if (res.status === 409) {
-                const errorData = await res.json();
-                alert(`Ops! ${errorData.error}`);
-                throw new Error("Estoque insuficiente");
-            }
+          const res = await fetch(`${backendUrl}/api/payments/checkout-pro`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: formattedItems, payer: payerData }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          const data = await res.json().catch(() => ({}));
 
-            if (!res.ok) {
-                throw new Error(`Erro no servidor: HTTP ${res.status}`);
-            }
+          if (!res.ok) {
+            alert(data.error || 'Não foi possível iniciar o pagamento com cartão no momento. Tente novamente.');
+            return;
+          }
 
-            const data = await res.json();
-
-            if (data.init_point) {
-              window.location.href = data.init_point;
-              return;
-            } else {
-              throw new Error("URL de pagamento não retornada.");
-            }
-          } catch(fetchErr) {
-            clearTimeout(timeoutId);
-            if (fetchErr.name === 'AbortError') {
-              btn.disabled = false;
-              if (selectedPayMethod === 'pix') {
-                btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
-              } else {
-                btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
-              }
-              btn.classList.replace('bg-gray-400', 'bg-emerald-600');
-              btn.classList.replace('hover:bg-gray-500', 'hover:bg-emerald-500');
-              alert('O servidor demorou muito para responder. Por favor, tente novamente.');
-              throw new Error("Timeout na comunicação com o servidor.");
-            }
-            console.warn('Erro na requisição de Cartão (Checkout Pro):', fetchErr);
-            throw fetchErr;
+          if (data.init_point) {
+            cart = []; updateCart();
+            window.location.href = data.init_point;
+          } else {
+            alert('URL de pagamento não retornada pelo Mercado Pago.');
           }
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error('Checkout error:', err);
-        if (selectedPayMethod === 'pix') {
-          btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Pagamento PIX';
+        if (err.name === 'AbortError') {
+          alert('O servidor demorou muito para responder. Por favor, tente novamente em alguns segundos.');
         } else {
-          btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pagar no Cartão';
+          alert('Erro de conexão com o servidor de pagamentos. Verifique sua internet e tente novamente.');
         }
       } finally {
         btn.disabled = false;
@@ -1279,11 +1297,21 @@
       }
     }
 
-    function copyPixCode() {
+    async function copyPixCode() {
       const input = document.getElementById('pixCopyPasteInput');
-      input.select();
-      document.execCommand('copy');
-      showToast('Copiado!', 'Código PIX copiado.');
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(input.value);
+        } else {
+          input.select();
+          document.execCommand('copy');
+        }
+        showToast('Copiado!', 'Código PIX copiado.');
+      } catch (e) {
+        input.select();
+        document.execCommand('copy');
+        showToast('Copiado!', 'Código PIX copiado.');
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1291,6 +1319,7 @@
       initFirebaseAuth();
       renderCategories();
       renderProducts();
+      updateCart();
       initFirebaseSync();
     });
 
@@ -1461,7 +1490,7 @@
         const isOutOfStock = p.stock <= 0 || p.status === 'esgotado';
         const isConsult = !isOutOfStock && (Number(p.price || 0) === 0 || p.status === 'consulte');
         const cleanDesc = getCleanProductDescription(p);
-        const safeTitle = String(p.title || '').replace(/'/g, "\\'");
+        const safeTitle = escapeHtml(String(p.title || '').replace(/'/g, "\\'"));
 
         const stockBadge = isOutOfStock 
             ? `<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center"><span class="bg-gray-900 text-white font-black text-[10px] sm:text-xs px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl uppercase tracking-widest shadow-xl border border-gray-700 -rotate-6">Esgotado</span></div>` 
@@ -1483,15 +1512,15 @@
             ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center shrink-0" title="Esgotado"><i class="fa-solid fa-ban text-[11px] sm:text-xs"></i></button>`
             : isConsult
               ? `<button onclick="consultProductWhatsApp('${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-2 sm:px-3 h-8 sm:h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-bold transition-all duration-300 shrink-0" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-xs sm:text-sm"></i><span class="hidden sm:inline">Consulte</span></button>`
-              : `<button onclick="addToCart(${p.id})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-[11px] sm:text-xs"></i></button>`;
+              : `<button onclick="addToCart(${Number(p.id)})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-[11px] sm:text-xs"></i></button>`;
 
         return `
         <div class="bg-white border border-gray-200/90 rounded-2xl overflow-hidden hover:border-[#FF5500]/50 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative">
           ${stockBadge}
           <div>
             <!-- Container da imagem responsivo (h-36 no celular para caber 2 por linha com elegância, h-56 no desktop) -->
-            <div class="relative h-36 sm:h-56 bg-white overflow-hidden cursor-pointer flex items-center justify-center p-2.5 sm:p-4 border-b border-gray-100" onclick="openProductModal(${p.id})">
-              <img src="${p.image}" alt="${p.title}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500">
+            <div class="relative h-36 sm:h-56 bg-white overflow-hidden cursor-pointer flex items-center justify-center p-2.5 sm:p-4 border-b border-gray-100" onclick="openProductModal(${Number(p.id)})">
+              <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}" loading="lazy" decoding="async" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500">
               
               <!-- Botão Espiar Dark Glassmorphism -->
               <button type="button" class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-gray-900/85 hover:bg-[#FF5500] text-white text-[10px] sm:text-[11px] font-bold tracking-wide px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-xl backdrop-blur-md flex items-center gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20 whitespace-nowrap">
@@ -1500,13 +1529,13 @@
               </button>
             </div>
 
-            <div class="p-2.5 sm:p-4 pb-2 sm:pb-3 cursor-pointer" onclick="openProductModal(${p.id})">
+            <div class="p-2.5 sm:p-4 pb-2 sm:pb-3 cursor-pointer" onclick="openProductModal(${Number(p.id)})">
               <div class="flex justify-between items-center gap-1 flex-wrap">
-                  <span class="text-[8px] sm:text-[9px] uppercase font-extrabold tracking-wider sm:tracking-widest text-[#FF5500] bg-[#FF5500]/10 px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">${p.subcategory || p.category}</span>
-                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="hidden sm:inline-block text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${p.stock}</span>` : ''}
+                  <span class="text-[8px] sm:text-[9px] uppercase font-extrabold tracking-wider sm:tracking-widest text-[#FF5500] bg-[#FF5500]/10 px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">${escapeHtml(p.subcategory || p.category)}</span>
+                  ${!isOutOfStock && !isConsult && p.stock <= 3 ? `<span class="hidden sm:inline-block text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Resta(m) ${Number(p.stock)}</span>` : ''}
               </div>
-              <h3 class="font-extrabold text-gray-900 text-xs sm:text-sm mt-1.5 sm:mt-2 line-clamp-2 sm:line-clamp-1 group-hover:text-[#FF5500] transition-colors leading-snug">${p.title}</h3>
-              <p class="text-[10px] sm:text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed hidden sm:block">${cleanDesc}</p>
+              <h3 class="font-extrabold text-gray-900 text-xs sm:text-sm mt-1.5 sm:mt-2 line-clamp-2 sm:line-clamp-1 group-hover:text-[#FF5500] transition-colors leading-snug">${escapeHtml(p.title)}</h3>
+              <p class="text-[10px] sm:text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed hidden sm:block">${escapeHtml(cleanDesc)}</p>
             </div>
           </div>
 
@@ -1514,7 +1543,7 @@
           <div class="px-2.5 sm:px-4 pb-2.5 sm:pb-4 pt-2 sm:pt-3 flex items-center justify-between gap-1 border-t border-gray-100 bg-gray-50/50">
             ${priceSectionHTML}
             <div class="flex items-center gap-1 sm:gap-1.5 relative z-20 shrink-0">
-              <button onclick="openProductModal(${p.id})" class="bg-white hover:bg-gray-900 text-gray-700 hover:text-white border border-gray-200/90 hover:border-gray-900 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all shadow-sm" title="Espiar Detalhes"><i class="fa-regular fa-eye text-[11px] sm:text-xs"></i></button>
+              <button onclick="openProductModal(${Number(p.id)})" class="bg-white hover:bg-gray-900 text-gray-700 hover:text-white border border-gray-200/90 hover:border-gray-900 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all shadow-sm" title="Espiar Detalhes"><i class="fa-regular fa-eye text-[11px] sm:text-xs"></i></button>
               ${mainActionButtonHTML}
             </div>
           </div>
@@ -1591,7 +1620,7 @@
       const thumbsContainer = document.getElementById('modalThumbnails');
       if (p.images && p.images.length > 0) {
           const allImages = [p.image, ...p.images];
-          thumbsContainer.innerHTML = allImages.map(imgUrl => `<button onclick="setModalImage('${imgUrl}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white"><img src="${imgUrl}" class="w-full h-full object-contain"></button>`).join('');
+          thumbsContainer.innerHTML = allImages.map(imgUrl => `<button onclick="setModalImage('${escapeHtml(imgUrl)}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white"><img src="${escapeHtml(imgUrl)}" class="w-full h-full object-contain"></button>`).join('');
           thumbsContainer.classList.remove('hidden');
       } else {
           thumbsContainer.innerHTML = '';
@@ -1629,6 +1658,7 @@
     }
 
     function updateCart() {
+      try { localStorage.setItem('malala_cart', JSON.stringify(cart)); } catch(e) {}
       document.getElementById('cartCount').innerText = cart.reduce((a,b) => a + b.qty, 0);
       const container = document.getElementById('cartItemsContainer');
       if (cart.length === 0) {
@@ -1636,13 +1666,13 @@
       } else {
         container.innerHTML = cart.map(i => `
           <div class="bg-gray-50 p-3 rounded-xl flex items-center gap-3 border border-gray-200">
-            <img src="${i.image}" class="w-14 h-14 object-contain rounded-lg bg-white border border-gray-200 p-1">
-            <div class="flex-1"><h4 class="text-xs font-bold text-gray-900 line-clamp-1">${i.title}</h4><p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}</p><div class="flex items-center gap-2 mt-2"><div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs"><button onclick="changeQty(${i.id}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button><span class="px-2 py-0.5 font-bold text-gray-900">${i.qty}</span><button onclick="changeQty(${i.id}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button></div></div></div>
-            <button onclick="cart = cart.filter(x => x.id !== ${i.id}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
+            <img src="${escapeHtml(i.image)}" class="w-14 h-14 object-contain rounded-lg bg-white border border-gray-200 p-1">
+            <div class="flex-1"><h4 class="text-xs font-bold text-gray-900 line-clamp-1">${escapeHtml(i.title)}</h4><p class="text-xs text-[#FF5500] font-black mt-0.5">R$ ${(Number(i.price || 0) * Number(i.qty || 1)).toFixed(2).replace('.', ',')}</p><div class="flex items-center gap-2 mt-2"><div class="flex items-center border border-gray-300 bg-white rounded-lg overflow-hidden text-xs"><button onclick="changeQty(${Number(i.id)}, -1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">-</button><span class="px-2 py-0.5 font-bold text-gray-900">${Number(i.qty || 1)}</span><button onclick="changeQty(${Number(i.id)}, 1)" class="px-2 py-0.5 hover:bg-gray-100 text-gray-600 font-bold">+</button></div></div></div>
+            <button onclick="cart = cart.filter(x => x.id !== ${Number(i.id)}); updateCart();" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
         `).join('');
       }
-      document.getElementById('cartTotal').innerText = `R$ ${cart.reduce((a,b) => a + (b.price * b.qty), 0).toFixed(2).replace('.', ',')}`;
+      document.getElementById('cartTotal').innerText = `R$ ${cart.reduce((a,b) => a + (Number(b.price || 0) * Number(b.qty || 1)), 0).toFixed(2).replace('.', ',')}`;
     }
 
     function toggleCart(force = false) { const m = document.getElementById('cartModal'); if (force) m.classList.remove('hidden'); else m.classList.toggle('hidden'); }

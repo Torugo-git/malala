@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A Minha Conta - MALALA STORE</title>
+  <title>Minha Conta - MALALA STORE</title>
+  <link rel="icon" type="image/png" href="logo-circle.png">
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -52,20 +53,20 @@
         <i class="fa-solid fa-user-check"></i>
       </div>
       <div>
-        <h1 class="text-2xl font-black text-gray-900" id="userNameDisplay">A carregar...</h1>
+        <h1 class="text-2xl font-black text-gray-900" id="userNameDisplay">Carregando...</h1>
         <p class="text-xs text-gray-500 font-medium mt-1" id="userEmailDisplay">Por favor, aguarde.</p>
       </div>
     </div>
 
     <h2 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-      <i class="fa-solid fa-box-open text-[#FF5500]"></i> Histórico de Encomendas & Rastreio
+      <i class="fa-solid fa-box-open text-[#FF5500]"></i> Histórico de Pedidos & Rastreio
     </h2>
 
     <!-- LISTA DE PEDIDOS -->
     <div id="ordersContainer" class="space-y-6">
       <div class="text-center py-10 text-gray-400">
         <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-[#FF5500]"></i>
-        <p class="text-xs font-bold">A carregar os seus pedidos...</p>
+        <p class="text-xs font-bold">Carregando seus pedidos...</p>
       </div>
     </div>
   </main>
@@ -90,12 +91,17 @@
     let auth = null;
     let currentUser = null;
 
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      let config = defaultFirebaseConfig;
-      const savedCfg = localStorage.getItem('malala_firebase_config');
-      if (savedCfg) { try { config = JSON.parse(savedCfg); } catch(e){} }
-      
-      if (!firebase.apps.length) firebase.initializeApp(config);
+      if (!firebase.apps.length) firebase.initializeApp(defaultFirebaseConfig);
       db = firebase.firestore();
       auth = firebase.auth();
 
@@ -112,7 +118,7 @@
     });
 
     function fetchUserOrders(email) {
-      if (!db) return;
+      if (!db || !email) return;
       
       db.collection('orders')
         .where('payer.email', '==', email)
@@ -140,8 +146,8 @@
         container.innerHTML = `
           <div class="bg-white p-10 rounded-3xl border border-gray-200 text-center shadow-sm">
             <i class="fa-solid fa-bag-shopping text-4xl text-gray-200 mb-4"></i>
-            <h3 class="text-sm font-black text-gray-900">Ainda não fez nenhuma encomenda</h3>
-            <p class="text-xs text-gray-500 mt-1 mb-5">Quando efetuar compras, elas aparecerão aqui com todos os detalhes de envio e rastreio.</p>
+            <h3 class="text-sm font-black text-gray-900">Você ainda não fez nenhum pedido</h3>
+            <p class="text-xs text-gray-500 mt-1 mb-5">Quando realizar compras, elas aparecerão aqui com todos os detalhes de envio e rastreio.</p>
             <a href="index.html" class="inline-block bg-[#FF5500] hover:bg-[#E64A00] text-white text-xs font-bold px-6 py-3 rounded-xl shadow-md transition-all">Ir às compras</a>
           </div>
         `;
@@ -155,7 +161,9 @@
         const paymentStatus = ord.status || 'Pendente';
         const paymentClass = paymentStatus === 'Pago' 
           ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
-          : 'bg-amber-100 text-amber-800 border-amber-200';
+          : paymentStatus === 'Cancelado'
+            ? 'bg-red-100 text-red-800 border-red-200'
+            : 'bg-amber-100 text-amber-800 border-amber-200';
 
         // Status de entrega logístico (Padrão: "Recebido" se não definido)
         const deliveryStatus = ord.deliveryStatus || 'Recebido';
@@ -175,7 +183,6 @@
           const isDone = idx <= currentStepIndex;
           const circleClass = isDone ? 'bg-[#FF5500] text-white border-[#FF5500]' : 'bg-gray-100 text-gray-400 border-gray-200';
           const textClass = isDone ? 'text-gray-900 font-bold' : 'text-gray-400';
-          const lineClass = idx < steps.length && idx < currentStepIndex ? 'bg-[#FF5500]' : 'bg-gray-200';
 
           return `
             <div class="flex flex-col items-center relative z-10 flex-1">
@@ -189,8 +196,8 @@
 
         const itemsList = (ord.items || []).map(i => `
           <div class="flex items-center justify-between text-xs py-2 border-b border-gray-100 last:border-0">
-            <span class="font-bold text-gray-800"><span class="text-gray-400 font-normal">${i.quantity || 1}x</span> ${i.title}</span>
-            <span class="text-gray-600 font-mono">R$ ${((i.price || 0) * (i.quantity || 1)).toFixed(2).replace('.', ',')}</span>
+            <span class="font-bold text-gray-800"><span class="text-gray-400 font-normal">${Number(i.quantity || 1)}x</span> ${escapeHtml(i.title)}</span>
+            <span class="text-gray-600 font-mono">R$ ${(Number(i.price || 0) * Number(i.quantity || 1)).toFixed(2).replace('.', ',')}</span>
           </div>
         `).join('');
 
@@ -198,18 +205,18 @@
           <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
               <div>
-                <span class="font-mono text-xs font-black bg-gray-100 px-3 py-1 rounded-lg text-gray-700">#${ord.id}</span>
+                <span class="font-mono text-xs font-black bg-gray-100 px-3 py-1 rounded-lg text-gray-700">#${escapeHtml(ord.id)}</span>
                 <span class="text-[10px] text-gray-400 ml-2"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-[10px] uppercase font-black px-3 py-1 rounded-full border ${paymentClass}">Pagamento: ${paymentStatus}</span>
-                <span class="text-sm font-black text-gray-900">R$ ${(ord.total || ord.totalAmount || 0).toFixed(2).replace('.', ',')}</span>
+                <span class="text-[10px] uppercase font-black px-3 py-1 rounded-full border ${paymentClass}">Pagamento: ${escapeHtml(paymentStatus)}</span>
+                <span class="text-sm font-black text-gray-900">R$ ${Number(ord.total || ord.totalAmount || 0).toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
 
             <!-- TIMELINE / RASTREIO VISUAL -->
             <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <p class="text-[10px] uppercase font-extrabold text-gray-400 mb-3"><i class="fa-solid fa-map-location-dot text-[#FF5500]"></i> Estado do Envio</p>
+              <p class="text-[10px] uppercase font-extrabold text-gray-400 mb-3"><i class="fa-solid fa-map-location-dot text-[#FF5500]"></i> Status do Envio</p>
               <div class="flex items-center justify-between relative px-2">
                 <!-- Linha de fundo horizontal -->
                 <div class="absolute left-6 right-6 top-4 h-0.5 bg-gray-200 -z-0"></div>
