@@ -112,7 +112,7 @@
           document.getElementById('userEmailDisplay').innerText = user.email;
           fetchUserOrders(user.email);
         } else {
-          window.location.href = 'index.html';
+          window.location.href = 'index.html' + (window.location.search || '');
         }
       });
     });

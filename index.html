@@ -1321,6 +1321,20 @@
       renderProducts();
       updateCart();
       initFirebaseSync();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const mpStatus = urlParams.get('collection_status') || urlParams.get('status');
+      const mpOrderRef = urlParams.get('external_reference');
+      if (mpStatus === 'approved' || urlParams.get('order') === 'success') {
+        cart = [];
+        updateCart();
+        document.getElementById('checkoutFormStep').classList.add('hidden');
+        document.getElementById('pixResultStep').classList.add('hidden');
+        document.getElementById('approvedOrderId').innerText = mpOrderRef ? `#${mpOrderRef}` : 'Confirmado';
+        document.getElementById('paymentApprovedStep').classList.remove('hidden');
+        document.getElementById('checkoutModal').classList.remove('hidden');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     });
 
     function showToast(title, message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-400', iconBg = 'bg-emerald-500/20') {
