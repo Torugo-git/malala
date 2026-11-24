@@ -1722,12 +1722,29 @@
       document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
 
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('produto', String(p.id));
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      } catch (e) {}
+
       if (window.MalalaTracking) {
         window.MalalaTracking.viewContent(p);
       }
     }
 
-    function closeProductModal() { document.body.classList.remove('overflow-hidden'); document.getElementById('productModal').classList.add('hidden'); }
+    function closeProductModal() {
+      document.body.classList.remove('overflow-hidden');
+      document.getElementById('productModal').classList.add('hidden');
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('produto') || url.searchParams.has('product')) {
+          url.searchParams.delete('produto');
+          url.searchParams.delete('product');
+          window.history.replaceState({}, '', url.pathname + (url.search || '') + url.hash);
+        }
+      } catch (e) {}
+    }
 
     function addToCart(id) {
       const p = products.find(x => x.id === id);
