@@ -79,7 +79,7 @@
   <div class="bg-gray-900 text-gray-200 border-b border-gray-800 text-xs py-2 px-4">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
       <div class="flex items-center gap-4">
-        <span class="flex items-center gap-1.5 text-[#FF5500] font-bold"><i class="fa-solid fa-sparkles"></i> VAI COMPRANDO & RECEBENDO</span>
+        <span class="flex items-center gap-1.5 text-[#FF5500] font-bold"><i class="fa-solid fa-wand-magic-sparkles"></i> VAI COMPRANDO & RECEBENDO</span>
         <span class="hidden md:inline text-gray-700">|</span>
         <span class="text-gray-300 font-medium">Seu próximo favorito está aqui.</span>
       </div>
@@ -214,7 +214,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
         <div class="p-2.5 bg-[#FF5500]/10 rounded-lg text-[#FF5500] text-lg">
-          <i class="fa-solid fa-shield-check"></i>
+          <i class="fa-solid fa-shield-halved"></i>
         </div>
         <div>
           <p class="text-xs font-bold text-gray-900">100% Originais</p>
@@ -384,6 +384,19 @@
     <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white"></span>
   </a>
 
+  <!-- AVISO DISCRETO DE COOKIES (LGPD) -->
+  <div id="cookieBanner" class="fixed bottom-4 left-4 right-20 sm:right-auto sm:max-w-sm z-40 hidden bg-gray-900/95 backdrop-blur-md text-gray-200 p-4 rounded-2xl shadow-2xl border border-gray-700/80 text-xs">
+    <p class="leading-relaxed text-[11px] text-gray-300">
+      Usamos cookies para melhorar sua navegação e personalizar ofertas. Ao continuar, você concorda com nossa
+      <a href="termos.html#privacidade" class="text-[#FF5500] font-bold hover:underline">Política de Privacidade</a>.
+    </p>
+    <div class="mt-3 flex items-center justify-end">
+      <button type="button" onclick="acceptCookies()" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-4 py-1.5 rounded-lg text-[11px] transition-colors">
+        Entendi
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL DE AUTENTICAÇÃO (LOGIN / REGISTRO) -->
   <div id="authModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
     <div onclick="closeAuthModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -476,6 +489,11 @@
             </div>
           </div>
 
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">WhatsApp / Telefone</label>
+            <input type="tel" id="payPhone" placeholder="(21) 99999-9999" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+          </div>
+
           <!-- ENDEREÇO DE ENTREGA -->
           <div class="space-y-3 pt-2 border-t border-gray-100">
             <span class="block text-xs font-extrabold text-gray-900"><i class="fa-solid fa-location-dot text-[#FF5500]"></i> Endereço de Entrega</span>
@@ -494,6 +512,12 @@
                 <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Número</label>
                 <input type="text" id="payNumber" placeholder="123" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
               </div>
+              <div class="col-span-2">
+                <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Complemento <span class="text-gray-400 font-normal">(opcional)</span></label>
+                <input type="text" id="payComplement" placeholder="Apto, Bloco, Casa, Referência..." class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-[10px] font-bold text-gray-600 mb-0.5">Bairro</label>
                 <input type="text" id="payNeighborhood" placeholder="Centro" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
@@ -1100,7 +1124,38 @@
         else if (val.length > 3) val = val.substring(0,3) + '.' + val.substring(3,6);
         e.target.value = val;
       }
+
+      if (e.target.id === 'payPhone') {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 11);
+        if (val.length > 10) val = `(${val.substring(0,2)}) ${val.substring(2,7)}-${val.substring(7,11)}`;
+        else if (val.length > 6) val = `(${val.substring(0,2)}) ${val.substring(2,6)}-${val.substring(6,10)}`;
+        else if (val.length > 2) val = `(${val.substring(0,2)}) ${val.substring(2)}`;
+        e.target.value = val;
+      }
     });
+
+    let lastBackendWarmup = 0;
+    function warmupBackend() {
+      const now = Date.now();
+      if (now - lastBackendWarmup < 5 * 60 * 1000) return;
+      lastBackendWarmup = now;
+      fetch('https://malala-backend-1.onrender.com/health', { method: 'GET', mode: 'cors' }).catch(() => {});
+    }
+
+    function initCookieBanner() {
+      try {
+        if (!localStorage.getItem('malala_cookie_consent')) {
+          const banner = document.getElementById('cookieBanner');
+          if (banner) banner.classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
+    function acceptCookies() {
+      try { localStorage.setItem('malala_cookie_consent', 'accepted'); } catch (e) {}
+      const banner = document.getElementById('cookieBanner');
+      if (banner) banner.classList.add('hidden');
+    }
 
     async function buscarEndereco(cepOriginal) {
       try {
@@ -1139,6 +1194,7 @@
 
     function openMercadoPagoCheckout() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
+      warmupBackend();
       toggleCart(false);
 
       if (window.MalalaTracking) {
@@ -1238,22 +1294,32 @@
           return;
       }
 
+      const phoneValue = document.getElementById('payPhone').value;
+      const phoneDigits = phoneValue.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+          alert('Por favor, informe um WhatsApp / telefone válido com DDD.');
+          document.getElementById('payPhone').focus();
+          return;
+      }
+
       const firstName = document.getElementById('payFirstName').value.trim();
       const lastName = document.getElementById('payLastName').value.trim();
       const email = document.getElementById('payEmail').value.trim().toLowerCase();
       const street = document.getElementById('payStreet').value.trim();
       const number = document.getElementById('payNumber').value.trim();
+      const complement = (document.getElementById('payComplement')?.value || '').trim();
       const neighborhood = document.getElementById('payNeighborhood').value.trim();
       const city = document.getElementById('payCity').value.trim();
       const cep = cepValue.trim();
 
       lastCheckoutEmail = email;
 
-      const shippingAddress = { cep, street, number, neighborhood, city };
+      const shippingAddress = { cep, street, number, complement, neighborhood, city };
       const payerData = {
         first_name: firstName,
         last_name: lastName,
         email: email,
+        phone: phoneValue.trim(),
         identification: { type: 'CPF', number: cpfValue.replace(/\D/g, '') },
         address: shippingAddress
       };
@@ -1392,6 +1458,7 @@
       updateCart();
       initFirebaseSync();
       tryOpenDeepLinkProduct();
+      initCookieBanner();
 
       const urlParams = new URLSearchParams(window.location.search);
       const mpStatus = urlParams.get('collection_status') || urlParams.get('status');
@@ -1792,7 +1859,12 @@
       document.getElementById('cartTotal').innerText = `R$ ${cart.reduce((a,b) => a + (Number(b.price || 0) * Number(b.qty || 1)), 0).toFixed(2).replace('.', ',')}`;
     }
 
-    function toggleCart(force = false) { const m = document.getElementById('cartModal'); if (force) m.classList.remove('hidden'); else m.classList.toggle('hidden'); }
+    function toggleCart(force = false) {
+      const m = document.getElementById('cartModal');
+      if (force) m.classList.remove('hidden');
+      else m.classList.toggle('hidden');
+      if (!m.classList.contains('hidden')) warmupBackend();
+    }
 
     function checkoutWhatsApp() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');

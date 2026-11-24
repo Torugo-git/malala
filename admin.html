@@ -994,9 +994,9 @@
           <body>
             <h2>DESTINATÁRIO</h2>
             <p class="bold">${escapeHtml(payer.name || 'Cliente')}</p>
-            <p>CPF: ${escapeHtml(payer.cpf || 'Não informado')}</p>
+            <p>CPF: ${escapeHtml(payer.cpf || 'Não informado')}${payer.phone ? ' • Tel: ' + escapeHtml(payer.phone) : ''}</p>
             <br>
-            <p>${escapeHtml(addr.street || '')}, ${escapeHtml(addr.number || '')}</p>
+            <p>${escapeHtml(addr.street || '')}, ${escapeHtml(addr.number || '')}${addr.complement ? ' - ' + escapeHtml(addr.complement) : ''}</p>
             <p>${escapeHtml(addr.neighborhood || '')}</p>
             <p class="bold">${escapeHtml(addr.city || '')}</p>
             <p class="bold">CEP: ${escapeHtml(addr.cep || '')}</p>
@@ -1029,7 +1029,7 @@
           const addr = payer.address || {};
           const itemsStr = (o.items || []).map(i => i.title).join(' ').toLowerCase();
 
-          const searchStr = `${o.id || ''} ${payer.name || ''} ${payer.email || ''} ${payer.cpf || ''} ${addr.street || ''} ${addr.neighborhood || ''} ${addr.city || ''} ${addr.cep || ''} ${itemsStr}`.toLowerCase();
+          const searchStr = `${o.id || ''} ${payer.name || ''} ${payer.email || ''} ${payer.phone || ''} ${payer.cpf || ''} ${addr.street || ''} ${addr.complement || ''} ${addr.neighborhood || ''} ${addr.city || ''} ${addr.cep || ''} ${itemsStr}`.toLowerCase();
           return searchStr.includes(search);
         });
       }
@@ -1088,16 +1088,19 @@
         const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${Number(i.quantity || 1)}x ${escapeHtml(i.title)}</span><span class="text-gray-600 font-mono">R$ ${(Number(i.price || 0)*Number(i.quantity || 1)).toFixed(2).replace('.',',')}</span></div>`).join('');
         const totalVal = Number(ord.total || ord.totalAmount || 0);
         const safeOrdId = escapeHtml(ord.id);
+        const phoneDigits = String(payer.phone || '').replace(/\D/g, '');
+        const waPhone = phoneDigits ? (phoneDigits.startsWith('55') ? phoneDigits : '55' + phoneDigits) : '';
 
         const isChecked = selectedOrderIds.includes(ord.id) ? 'checked' : '';
 
         return `
           <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div class="flex justify-between items-center pb-3 border-b border-gray-100">
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-3 flex-wrap">
                 <input type="checkbox" value="${safeOrdId}" ${isChecked} onchange="toggleOrderSelection('${safeOrdId}', this.checked)" class="order-checkbox w-4 h-4 text-[#FF5500] rounded focus:ring-[#FF5500] mr-2">
                 <span class="font-mono text-xs font-black bg-gray-100 px-2 py-1 rounded-md text-gray-700">${safeOrdId}</span>
                 <span class="text-xs font-bold text-gray-900">${escapeHtml(payer.name || payer.email || 'Cliente')}</span>
+                ${waPhone ? `<a href="https://wa.me/${waPhone}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md hover:bg-emerald-600 hover:text-white transition-colors"><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(payer.phone)}</a>` : ''}
                 <span class="text-[10px] text-gray-400 ml-2 hidden sm:inline"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
               </div>
               <span class="text-xs font-black text-[#FF5500]">R$ ${totalVal.toFixed(2).replace('.',',')}</span>
@@ -1127,7 +1130,7 @@
               <div>
                 <p class="text-[10px] font-bold text-gray-400 mb-1">ENDEREÇO</p>
                 <div class="text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 flex justify-between items-start">
-                  <span>${escapeHtml(payer.address?.street || 'N/A')}, ${escapeHtml(payer.address?.number || 'N/A')}<br>${escapeHtml(payer.address?.neighborhood || '')} - ${escapeHtml(payer.address?.city || 'N/A')}<br>CEP: ${escapeHtml(payer.address?.cep || 'N/A')}</span>
+                  <span>${escapeHtml(payer.address?.street || 'N/A')}, ${escapeHtml(payer.address?.number || 'N/A')}${payer.address?.complement ? ' - ' + escapeHtml(payer.address.complement) : ''}<br>${escapeHtml(payer.address?.neighborhood || '')} - ${escapeHtml(payer.address?.city || 'N/A')}<br>CEP: ${escapeHtml(payer.address?.cep || 'N/A')}</span>
                   <button onclick="printOrderLabel('${safeOrdId}')" class="text-[#FF5500] hover:text-[#E64A00] transition-colors p-1" title="Imprimir Etiqueta de Envio">
                     <i class="fa-solid fa-print"></i>
                   </button>

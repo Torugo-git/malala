@@ -161,9 +161,14 @@ async function sendMetaCapiPurchase(orderId, orderData) {
     const lastName = nameParts.slice(1).join(' ');
     const cityOnly = String(address.city || '').split('/')[0].trim();
     const cepDigits = String(address.cep || '').replace(/\D/g, '');
+    const rawPhoneDigits = String(payer.phone || '').replace(/\D/g, '');
+    const normalizedPhone = rawPhoneDigits
+      ? (rawPhoneDigits.startsWith('55') ? rawPhoneDigits : `55${rawPhoneDigits}`)
+      : '';
 
     const userData = {};
     const emHash = sha256Normalized(payer.email);
+    const phHash = sha256Normalized(normalizedPhone);
     const fnHash = sha256Normalized(firstName);
     const lnHash = sha256Normalized(lastName);
     const zpHash = sha256Normalized(cepDigits);
@@ -171,6 +176,7 @@ async function sendMetaCapiPurchase(orderId, orderData) {
     const countryHash = sha256Normalized('br');
 
     if (emHash) userData.em = [emHash];
+    if (phHash) userData.ph = [phHash];
     if (fnHash) userData.fn = [fnHash];
     if (lnHash) userData.ln = [lnHash];
     if (zpHash) userData.zp = [zpHash];
@@ -255,6 +261,7 @@ app.post('/api/payments/pix', async (req, res) => {
     const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
+    const cleanPhone = payer.phone ? String(payer.phone).trim() : '';
     const trackingMeta = extractTrackingMeta(req);
     let orderId = 'ORD-' + Date.now();
 
@@ -263,6 +270,7 @@ app.post('/api/payments/pix', async (req, res) => {
         payer: {
           name: `${String(payer.first_name).trim()} ${String(payer.last_name || '').trim()}`.trim(),
           email: cleanEmail,
+          phone: cleanPhone,
           cpf: cleanCpf,
           address: payer.address || shippingAddress || null
         },
@@ -340,6 +348,7 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
+    const cleanPhone = payer.phone ? String(payer.phone).trim() : '';
     const trackingMeta = extractTrackingMeta(req);
     let orderId = 'ORD-' + Date.now();
 
@@ -348,6 +357,7 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
         payer: {
           name: `${String(payer.first_name).trim()} ${String(payer.last_name || '').trim()}`.trim(),
           email: cleanEmail,
+          phone: cleanPhone,
           cpf: cleanCpf,
           address: payer.address || shippingAddress || null
         },
