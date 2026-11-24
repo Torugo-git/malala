@@ -248,7 +248,10 @@
                 2. Feed XML (Vitrine automática nos anúncios)
               </h4>
               <p class="text-[11px] text-gray-600 leading-relaxed">
-                É um link que lista todos os seus produtos com <strong>foto, preço e estoque atualizados em tempo real</strong>. O gestor cola esse link no Catálogo do Instagram/Facebook ou no Google Shopping. Se você mudar um preço ou um item zerar no estoque aqui no painel, o anúncio atualiza sozinho — e quando o cliente clica no anúncio, a loja já abre direto aquele produto na tela.
+                É um link que lista todos os seus produtos com <strong>foto, preço e estoque atualizados em tempo real</strong>. O gestor cola esse link no Catálogo do Instagram/Facebook ou no Google Shopping. Se um item zerar no estoque, o anúncio atualiza sozinho — e ao clicar, a loja já abre direto aquele produto.
+              </p>
+              <p class="text-[10px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded-lg p-2 leading-relaxed">
+                <strong>Sobre itens "Sob Consulta" (R$ 0):</strong> eles ficam fora do XML de propósito, pois Meta e Google exigem preço real para catálogo. <strong>Nunca coloque preço simbólico (ex.: R$ 1,00)</strong>, pois o cliente conseguiria comprar por esse valor e o anúncio pode ser bloqueado. Para divulgar itens sob consulta, use anúncios diretos para o WhatsApp ou link do produto.
               </p>
             </div>
 
@@ -258,8 +261,13 @@
                 3. Gerador de Links UTM (Saber de onde vêm as vendas)
               </h4>
               <p class="text-[11px] text-gray-600 leading-relaxed">
-                Cria links especiais com "etiquetas" invisíveis para você e o gestor saberem exatamente <strong>qual campanha, Story, Reels ou Bio</strong> trouxe mais vendas. Você pode gerar um link para a página inicial da loja ou apontando direto para um perfume ou produto específico.
+                Cria links com "etiquetas" invisíveis para saber exatamente qual divulgação trouxe mais vendas (apontando para a Home ou direto para um produto):
               </p>
+              <ul class="text-[10px] text-gray-600 space-y-1 pt-1 leading-relaxed">
+                <li><strong>utm_source (Origem):</strong> de onde o cliente veio — ex.: <code>instagram</code>, <code>facebook</code>, <code>google</code>, <code>tiktok</code>.</li>
+                <li><strong>utm_medium (Formato):</strong> por qual formato clicou — ex.: <code>cpc</code> (anúncio pago), <code>stories</code>, <code>reels</code>, <code>bio</code>.</li>
+                <li><strong>utm_campaign (Campanha):</strong> nome da oferta ou ação — ex.: <code>perfumes_arabes</code>, <code>promocao_mes</code>.</li>
+              </ul>
             </div>
 
             <div class="bg-white p-4 rounded-xl border border-gray-200/80 space-y-1.5">
