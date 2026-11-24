@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
@@ -109,6 +110,132 @@ async function validateAndSanitizeItems(requestedItems) {
     return { valid: true, sanitizedItems };
 }
 
+// HELPERS PARA META CONVERSIONS API (CAPI) E FEED XML DE CATÁLOGO
+const STORE_BASE_URL = (process.env.STORE_BASE_URL || 'https://www.malalastore.com.br').replace(/\/+$/, '');
+
+function sha256Normalized(value) {
+  if (!value) return undefined;
+  const clean = String(value).trim().toLowerCase();
+  if (!clean) return undefined;
+  return crypto.createHash('sha256').update(clean).digest('hex');
+}
+
+function escapeXml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function extractTrackingMeta(req) {
+  const incoming = (req.body && req.body.tracking) || {};
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const clientIp = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : req.ip || '');
+
+  return {
+    fbp: typeof incoming.fbp === 'string' ? incoming.fbp.trim() : '',
+    fbc: typeof incoming.fbc === 'string' ? incoming.fbc.trim() : '',
+    eventSourceUrl: typeof incoming.eventSourceUrl === 'string' && incoming.eventSourceUrl.startsWith('http')
+      ? incoming.eventSourceUrl.trim()
+      : `${STORE_BASE_URL}/`,
+    clientIp: clientIp || '',
+    userAgent: req.get('user-agent') || ''
+  };
+}
+
+async function sendMetaCapiPurchase(orderId, orderData) {
+  const pixelId = (process.env.META_PIXEL_ID || '').trim();
+  const accessToken = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
+  if (!pixelId || !accessToken) return;
+
+  try {
+    const payer = orderData.payer || {};
+    const address = payer.address || {};
+    const tracking = orderData.tracking || {};
+    const nameParts = String(payer.name || '').trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ');
+    const cityOnly = String(address.city || '').split('/')[0].trim();
+    const cepDigits = String(address.cep || '').replace(/\D/g, '');
+
+    const userData = {};
+    const emHash = sha256Normalized(payer.email);
+    const fnHash = sha256Normalized(firstName);
+    const lnHash = sha256Normalized(lastName);
+    const zpHash = sha256Normalized(cepDigits);
+    const ctHash = sha256Normalized(cityOnly);
+    const countryHash = sha256Normalized('br');
+
+    if (emHash) userData.em = [emHash];
+    if (fnHash) userData.fn = [fnHash];
+    if (lnHash) userData.ln = [lnHash];
+    if (zpHash) userData.zp = [zpHash];
+    if (ctHash) userData.ct = [ctHash];
+    if (countryHash) userData.country = [countryHash];
+    if (tracking.fbp) userData.fbp = tracking.fbp;
+    if (tracking.fbc) userData.fbc = tracking.fbc;
+    if (tracking.clientIp) userData.client_ip_address = tracking.clientIp;
+    if (tracking.userAgent) userData.client_user_agent = tracking.userAgent;
+
+    const items = Array.isArray(orderData.items) ? orderData.items : [];
+    const totalAmount = Number(orderData.totalAmount || 0);
+    const numItems = items.reduce((acc, i) => acc + Number(i.quantity || 1), 0);
+
+    const payload = {
+      data: [
+        {
+          event_name: 'Purchase',
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: String(orderId), // Mesmo eventID do Pixel no frontend para deduplicação oficial
+          action_source: 'website',
+          event_source_url: tracking.eventSourceUrl || `${STORE_BASE_URL}/`,
+          user_data: userData,
+          custom_data: {
+            currency: 'BRL',
+            value: Number(totalAmount.toFixed(2)),
+            order_id: String(orderId),
+            content_type: 'product',
+            content_ids: items.map(i => String(i.id)),
+            contents: items.map(i => ({
+              id: String(i.id),
+              quantity: Number(i.quantity || 1),
+              item_price: Number(i.price || 0)
+            })),
+            num_items: numItems
+          }
+        }
+      ]
+    };
+
+    const testEventCode = (process.env.META_TEST_EVENT_CODE || '').trim();
+    if (testEventCode) {
+      payload.test_event_code = testEventCode;
+    }
+
+    const capiRes = await fetch(
+      `https://graph.facebook.com/v21.0/${encodeURIComponent(pixelId)}/events?access_token=${encodeURIComponent(accessToken)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    if (capiRes.ok) {
+      console.log(`📡 [META CAPI] Purchase enviado com sucesso para o pedido ${orderId}`);
+    } else {
+      const errBody = await capiRes.text();
+      console.error(`❌ [META CAPI] Falha ao enviar Purchase (${orderId}):`, errBody);
+    }
+  } catch (err) {
+    console.error('❌ [META CAPI] Erro inesperado:', err);
+  }
+}
+
 // ROTA 1: PIX
 app.post('/api/payments/pix', async (req, res) => {
   try {
@@ -128,6 +255,7 @@ app.post('/api/payments/pix', async (req, res) => {
     const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
+    const trackingMeta = extractTrackingMeta(req);
     let orderId = 'ORD-' + Date.now();
 
     try {
@@ -141,6 +269,7 @@ app.post('/api/payments/pix', async (req, res) => {
         items: officialItems,
         totalAmount,
         paymentMethod: 'pix',
+        tracking: trackingMeta,
         status: 'Pendente',
         createdAt: FieldValue.serverTimestamp()
       });
@@ -211,6 +340,7 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
+    const trackingMeta = extractTrackingMeta(req);
     let orderId = 'ORD-' + Date.now();
 
     try {
@@ -224,6 +354,7 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
         items: officialItems,
         totalAmount,
         paymentMethod: 'mercado_pago_pro',
+        tracking: trackingMeta,
         status: 'Pendente',
         createdAt: FieldValue.serverTimestamp()
       });
@@ -288,7 +419,76 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
   }
 });
 
-// ROTA DE STATUS DO PEDIDO (POLLING PARA PIX)
+// ROTA DE HEALTHCHECK (RENDER / MONITORAMENTO)
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, db: Boolean(db) });
+});
+
+// ROTA DE FEED XML DO CATÁLOGO (META COMMERCE MANAGER / GOOGLE MERCHANT CENTER)
+app.get('/api/catalog/feed.xml', async (req, res) => {
+  try {
+    if (!db) return res.status(500).type('text/plain').send('Banco de dados indisponível.');
+
+    const docSnap = await db.collection('malala_store').doc('catalog').get();
+    const rawProducts = docSnap.exists && Array.isArray(docSnap.data().products)
+      ? docSnap.data().products
+      : [];
+
+    const validProducts = rawProducts.filter(p => {
+      const price = Number(parseFloat(p.price));
+      return p && p.id !== undefined && p.title && p.image && Number.isFinite(price) && price > 0 && p.status !== 'consulte';
+    });
+
+    const itemsXml = validProducts.map(p => {
+      const id = String(p.id);
+      const title = String(p.title).trim();
+      const rawDesc = String(p.description || p.desc || p.descricao || '').trim();
+      const description = rawDesc && rawDesc !== '.' && rawDesc !== 'Produto recém-adicionado.'
+        ? rawDesc
+        : `${title} original com garantia de procedência Malala Store.`;
+      const price = Number(parseFloat(p.price)).toFixed(2);
+      const inStock = (p.stock === undefined || Number(p.stock) > 0) && p.status !== 'esgotado';
+      const availability = inStock ? 'in stock' : 'out of stock';
+      const productLink = `${STORE_BASE_URL}/?produto=${encodeURIComponent(id)}`;
+      const category = String(p.subcategory || p.category || 'Produtos').trim();
+      const brand = String(p.brand || 'Malala Store').trim();
+      const extraImages = Array.isArray(p.images)
+        ? p.images
+            .filter(img => typeof img === 'string' && img.trim().startsWith('http'))
+            .slice(0, 10)
+            .map(img => `      <g:additional_image_link>${escapeXml(img.trim())}</g:additional_image_link>`)
+            .join('\n')
+        : '';
+
+      return [
+        '    <item>',
+        `      <g:id>${escapeXml(id)}</g:id>`,
+        `      <g:title>${escapeXml(title)}</g:title>`,
+        `      <g:description>${escapeXml(description)}</g:description>`,
+        `      <g:link>${escapeXml(productLink)}</g:link>`,
+        `      <g:image_link>${escapeXml(String(p.image).trim())}</g:image_link>`,
+        extraImages,
+        `      <g:availability>${availability}</g:availability>`,
+        `      <g:price>${price} BRL</g:price>`,
+        '      <g:condition>new</g:condition>',
+        `      <g:brand>${escapeXml(brand)}</g:brand>`,
+        `      <g:product_type>${escapeXml(category)}</g:product_type>`,
+        '    </item>'
+      ].filter(Boolean).join('\n');
+    }).join('\n');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n  <channel>\n    <title>MALALA STORE - Catálogo Oficial</title>\n    <link>${escapeXml(STORE_BASE_URL)}/</link>\n    <description>Tecnologia, Beleza e Perfumaria Importada e Árabe.</description>\n${itemsXml}\n  </channel>\n</rss>\n`;
+
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=300');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('❌ Erro ao gerar feed XML do catálogo:', error);
+    res.status(500).type('text/plain').send('Falha ao gerar feed XML.');
+  }
+});
+
+// ROTA DE STATUS DO PEDIDO (POLLING PARA PIX E CONFIRMAÇÃO DE PURCHASE)
 app.get('/api/orders/:id/status', async (req, res) => {
   try {
     const orderId = req.params.id;
@@ -301,7 +501,22 @@ app.get('/api/orders/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Pedido não encontrado.' });
     }
 
-    res.status(200).json({ status: orderSnap.data().status });
+    const orderData = orderSnap.data();
+    const responsePayload = { status: orderData.status };
+
+    // Retorna apenas dados não-sensíveis (sem PII) quando o pedido está Pago para rastreamento de Purchase
+    if (orderData.status === 'Pago') {
+      responsePayload.totalAmount = Number(orderData.totalAmount || 0);
+      responsePayload.paymentMethod = orderData.paymentMethod || 'mercadopago';
+      responsePayload.items = (orderData.items || []).map(item => ({
+        id: String(item.id),
+        title: String(item.title),
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || 0)
+      }));
+    }
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     console.error('❌ Erro ao buscar status do pedido:', error);
     res.status(500).json({ error: 'Falha ao buscar status do pedido.' });
@@ -371,6 +586,9 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
 
         if (orderJustApproved) {
           console.log(`✅ [WEBHOOK] Pedido ${orderId} aprovado e estoque reduzido com sucesso!`);
+
+          // Enviar evento Purchase via Meta Conversions API (CAPI) com deduplicação por event_id
+          await sendMetaCapiPurchase(orderId, orderJustApproved);
 
           // Enviar email de confirmação via EmailJS
           try {

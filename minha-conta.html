@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Minha Conta - MALALA STORE</title>
+  <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="logo-circle.png">
+
+  <!-- Rastreamento Centralizado (Meta Pixel / GTM / GA4) -->
+  <script src="tracking.js"></script>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -110,6 +114,22 @@
           currentUser = user;
           document.getElementById('userNameDisplay').innerText = `Olá, ${user.displayName || 'Cliente'}`;
           document.getElementById('userEmailDisplay').innerText = user.email;
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const mpStatus = urlParams.get('collection_status') || urlParams.get('status');
+          const mpOrderRef = urlParams.get('external_reference');
+          if (mpStatus === 'approved' || urlParams.get('order') === 'success') {
+            try { localStorage.removeItem('malala_cart'); } catch (e) {}
+            if (window.MalalaTracking) {
+              window.MalalaTracking.trackMercadoPagoReturn({
+                orderId: mpOrderRef,
+                status: 'approved',
+                backendUrl: 'https://malala-backend-1.onrender.com'
+              });
+            }
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+
           fetchUserOrders(user.email);
         } else {
           window.location.href = 'index.html' + (window.location.search || '');

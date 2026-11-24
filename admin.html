@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - MALALA STORE</title>
+  <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="logo-circle.png">
 
   <!-- Firebase SDK (Compat version) -->
@@ -103,12 +104,15 @@
     </div>
 
     <!-- MENU DE NAVEGAÇÃO INTERNA -->
-    <div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
+    <div class="flex flex-wrap items-center gap-2 mb-6 border-b border-gray-200 pb-3">
       <button onclick="switchTab('products')" id="tabProductsBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
         <i class="fa-solid fa-boxes-stacked"></i> Catálogo de Produtos
       </button>
       <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
         <i class="fa-solid fa-receipt text-[#FF5500]"></i> Pedidos & Vendas <span id="ordersBadge" class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
+      </button>
+      <button onclick="switchTab('marketing')" id="tabMarketingBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
+        <i class="fa-solid fa-bullhorn text-[#FF5500]"></i> Marketing & Tráfego
       </button>
     </div>
 
@@ -205,6 +209,184 @@
       </div>
 
       <div id="adminOrdersContainer" class="space-y-4"></div>
+    </div>
+    <!-- ABA 3: MARKETING & TRÁFEGO -->
+    <div id="tabMarketingView" class="hidden space-y-6">
+
+      <!-- PIXELS E TAGS EM TEMPO REAL -->
+      <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-5">
+          <div>
+            <h3 class="font-extrabold text-gray-900 text-base flex items-center gap-2">
+              <i class="fa-solid fa-bullseye text-[#FF5500]"></i> Pixels, Tags & Analytics
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">Configure os IDs abaixo e salve — a loja aplica automaticamente em tempo real sem precisar mexer no código.</p>
+          </div>
+          <span id="marketingSavedBadge" class="hidden text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+            <i class="fa-solid fa-circle-check mr-1"></i> Salvo na nuvem
+          </span>
+        </div>
+
+        <form onsubmit="saveMarketingSettings(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">
+                <i class="fa-brands fa-meta text-blue-600 mr-1"></i> Meta Pixel ID (Facebook / Instagram Ads)
+              </label>
+              <input type="text" id="mktMetaPixelId" placeholder="Ex: 123456789012345" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500] font-mono">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">
+                <i class="fa-solid fa-code text-indigo-600 mr-1"></i> Google Tag Manager (GTM ID)
+              </label>
+              <input type="text" id="mktGtmId" placeholder="Ex: GTM-XXXXXXX" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500] font-mono">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">
+                <i class="fa-solid fa-chart-simple text-amber-600 mr-1"></i> Google Analytics 4 (GA4 ID)
+              </label>
+              <input type="text" id="mktGa4Id" placeholder="Ex: G-XXXXXXXXXX (deixe vazio se usar via GTM)" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500] font-mono">
+              <p class="text-[10px] text-gray-400 mt-1">Se o GA4 já estiver configurado dentro do GTM, deixe este campo vazio para evitar eventos duplicados.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">
+                <i class="fa-brands fa-tiktok text-gray-900 mr-1"></i> TikTok Pixel ID (Opcional)
+              </label>
+              <input type="text" id="mktTiktokPixelId" placeholder="Ex: CXXXXXXXXXXXXXXXXX" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3.5 rounded-xl focus:outline-none focus:border-[#FF5500] font-mono">
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-gray-100">
+            <label class="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" id="mktDebugMode" class="w-4 h-4 rounded text-[#FF5500] focus:ring-[#FF5500]">
+              <span class="text-xs font-bold text-gray-700">Modo Debug (exibir disparos de eventos no Console F12)</span>
+            </label>
+
+            <button type="submit" id="saveMarketingBtn" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-6 py-3 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações de Tráfego
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- FEED XML DE CATÁLOGO + GERADOR DE LINKS UTM -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- FEED XML DE CATÁLOGO -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <h3 class="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-rss text-[#FF5500]"></i> Feed XML de Catálogo (Anúncios Dinâmicos)
+              </h3>
+              <span id="feedActiveCount" class="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">0 produtos prontos</span>
+            </div>
+            <p class="text-xs text-gray-500 leading-relaxed mb-4">
+              Cole esta URL no <strong>Meta Commerce Manager</strong> (Catálogo do Instagram/Facebook) ou no <strong>Google Merchant Center</strong>. O feed atualiza automaticamente estoque, preços e links diretos por produto (<code>?produto=ID</code>).
+            </p>
+
+            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">URL do Feed XML em Produção</label>
+            <div class="flex gap-2">
+              <input type="text" id="catalogFeedUrlInput" readonly value="https://malala-backend-1.onrender.com/api/catalog/feed.xml" class="w-full bg-gray-100 border border-gray-200 text-[11px] font-mono py-2.5 px-3 rounded-xl text-gray-700 select-all">
+              <button type="button" onclick="copyTextField('catalogFeedUrlInput', 'URL do Feed XML copiada!')" class="bg-gray-900 hover:bg-[#FF5500] text-white text-xs font-bold px-4 py-2 rounded-xl shrink-0 transition-colors flex items-center gap-1.5">
+                <i class="fa-solid fa-copy"></i> Copiar
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+            <span class="text-[10px] text-gray-400">Itens "Sob Consulta" (R$ 0) são filtrados automaticamente.</span>
+            <a href="https://malala-backend-1.onrender.com/api/catalog/feed.xml" target="_blank" rel="noopener" class="text-xs font-bold text-[#FF5500] hover:underline flex items-center gap-1">
+              Testar XML <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- GERADOR DE LINKS COM UTM -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <div>
+            <h3 class="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-link text-[#FF5500]"></i> Gerador de Links com UTM (Campanhas)
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">Crie links rastreáveis apontando para a Home ou abrindo um produto específico.</p>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Destino</label>
+              <select id="utmProductSelect" onchange="buildUtmLink()" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+                <option value="">Página Inicial da Loja</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] font-bold text-gray-500 mb-1">utm_source</label>
+                <input type="text" id="utmSource" value="instagram" oninput="buildUtmLink()" placeholder="instagram" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-500 mb-1">utm_medium</label>
+                <input type="text" id="utmMedium" value="cpc" oninput="buildUtmLink()" placeholder="cpc / stories" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-500 mb-1">utm_campaign</label>
+                <input type="text" id="utmCampaign" value="lancamento" oninput="buildUtmLink()" placeholder="perfumes_arabes" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-2.5 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Link Pronto para Anúncio</label>
+              <div class="flex gap-2">
+                <input type="text" id="utmResultInput" readonly class="w-full bg-gray-100 border border-gray-200 text-[11px] font-mono py-2 px-3 rounded-xl text-gray-700 select-all">
+                <button type="button" onclick="copyTextField('utmResultInput', 'Link UTM copiado!')" class="bg-[#FF5500] hover:bg-[#E64A00] text-white text-xs font-bold px-4 py-2 rounded-xl shrink-0 transition-colors flex items-center gap-1.5">
+                  <i class="fa-solid fa-copy"></i> Copiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS DOS EVENTOS E META CONVERSIONS API (CAPI) -->
+      <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <h3 class="font-extrabold text-gray-900 text-sm flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i> Eventos de Conversão Integrados & API de Conversões (CAPI)
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">PageView</span>
+            <span class="text-[10px] text-emerald-600">Ativo</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">ViewContent</span>
+            <span class="text-[10px] text-emerald-600">Modal Produto</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">AddToCart</span>
+            <span class="text-[10px] text-emerald-600">Carrinho</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">InitiateCheckout</span>
+            <span class="text-[10px] text-emerald-600">MP & WhatsApp</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">AddPaymentInfo</span>
+            <span class="text-[10px] text-emerald-600">Envio Pagamento</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+            <span class="block text-[11px] font-black text-emerald-800">Purchase</span>
+            <span class="text-[10px] text-emerald-600">Pós-Aprovação</span>
+          </div>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs text-gray-600 space-y-1.5">
+          <p><strong class="text-gray-900">Meta Conversions API (CAPI Server-Side):</strong> O webhook do Mercado Pago no servidor já envia <code>Purchase</code> com SHA-256 e <code>event_id</code> sincronizado para deduplicação automática. Para ativar o server-side, basta cadastrar <code>META_PIXEL_ID</code> e <code>META_CAPI_ACCESS_TOKEN</code> nas variáveis de ambiente do Render.</p>
+          <p><strong class="text-gray-900">Verificação de Domínio:</strong> A meta tag <code>facebook-domain-verification</code> deve ser colada no <code>&lt;head&gt;</code> do <code>index.html</code> (o robô da Meta lê o HTML estático).</p>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -384,12 +566,124 @@
     function initFirebaseAdminSync() {
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
-        if (doc.exists && doc.data().products) {
-          adminProducts = doc.data().products.map(p => ({...p, stock: p.stock !== undefined ? p.stock : 10, images: p.images || []}));
-          localStorage.setItem('malala_products', JSON.stringify(adminProducts));
-          renderAdminTable();
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.products) {
+            adminProducts = data.products.map(p => ({...p, stock: p.stock !== undefined ? p.stock : 10, images: p.images || []}));
+            localStorage.setItem('malala_products', JSON.stringify(adminProducts));
+            renderAdminTable();
+          }
+          if (data.marketing) {
+            populateMarketingForm(data.marketing);
+          }
+          refreshMarketingWidgets();
         }
       });
+    }
+
+    function populateMarketingForm(mkt) {
+      if (!mkt) return;
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+      setVal('mktMetaPixelId', mkt.metaPixelId);
+      setVal('mktGtmId', mkt.gtmId);
+      setVal('mktGa4Id', mkt.ga4Id);
+      setVal('mktTiktokPixelId', mkt.tiktokPixelId);
+      const dbgEl = document.getElementById('mktDebugMode');
+      if (dbgEl) dbgEl.checked = Boolean(mkt.debug);
+    }
+
+    function refreshMarketingWidgets() {
+      const validFeedCount = adminProducts.filter(p => {
+        const price = Number(parseFloat(p.price));
+        return p && p.id !== undefined && p.title && p.image && Number.isFinite(price) && price > 0 && p.status !== 'consulte';
+      }).length;
+      const badgeEl = document.getElementById('feedActiveCount');
+      if (badgeEl) badgeEl.innerText = `${validFeedCount} produto(s) no feed`;
+
+      const selectEl = document.getElementById('utmProductSelect');
+      if (selectEl) {
+        const prev = selectEl.value;
+        selectEl.innerHTML = `<option value="">Página Inicial da Loja</option>` + adminProducts
+          .map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.title)} (R$ ${Number(p.price || 0).toFixed(2).replace('.', ',')})</option>`)
+          .join('');
+        selectEl.value = prev;
+      }
+      buildUtmLink();
+    }
+
+    function buildUtmLink() {
+      const productId = (document.getElementById('utmProductSelect')?.value || '').trim();
+      const source = (document.getElementById('utmSource')?.value || '').trim();
+      const medium = (document.getElementById('utmMedium')?.value || '').trim();
+      const campaign = (document.getElementById('utmCampaign')?.value || '').trim();
+
+      const params = new URLSearchParams();
+      if (productId) params.set('produto', productId);
+      if (source) params.set('utm_source', source);
+      if (medium) params.set('utm_medium', medium);
+      if (campaign) params.set('utm_campaign', campaign);
+
+      const qs = params.toString();
+      const finalUrl = `https://www.malalastore.com.br/${qs ? '?' + qs : ''}`;
+      const resultEl = document.getElementById('utmResultInput');
+      if (resultEl) resultEl.value = finalUrl;
+    }
+
+    async function copyTextField(inputId, successMsg) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(input.value);
+        } else {
+          input.select();
+          document.execCommand('copy');
+        }
+        alert(successMsg || 'Copiado com sucesso!');
+      } catch (e) {
+        input.select();
+        document.execCommand('copy');
+        alert(successMsg || 'Copiado com sucesso!');
+      }
+    }
+
+    async function saveMarketingSettings(e) {
+      e.preventDefault();
+      if (!db) return alert('Firebase não conectado.');
+
+      const btn = document.getElementById('saveMarketingBtn');
+      const badge = document.getElementById('marketingSavedBadge');
+      const marketingPayload = {
+        metaPixelId: document.getElementById('mktMetaPixelId').value.trim(),
+        gtmId: document.getElementById('mktGtmId').value.trim(),
+        ga4Id: document.getElementById('mktGa4Id').value.trim(),
+        tiktokPixelId: document.getElementById('mktTiktokPixelId').value.trim(),
+        debug: Boolean(document.getElementById('mktDebugMode').checked),
+        updatedAt: new Date().toISOString()
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+      try {
+        await db.collection('malala_store').doc('catalog').set({
+          marketing: marketingPayload,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        try { localStorage.setItem('malala_marketing_config', JSON.stringify(marketingPayload)); } catch (err) {}
+
+        if (badge) {
+          badge.classList.remove('hidden');
+          setTimeout(() => badge.classList.add('hidden'), 4000);
+        }
+      } catch (err) {
+        console.error('Erro ao salvar configurações de tráfego:', err);
+        alert('Erro ao salvar configurações de tráfego. Verifique se você está logado como Admin.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Configurações de Tráfego';
+      }
     }
 
     async function handleLogin(e) {
@@ -466,12 +760,18 @@
     function switchTab(tab) {
       document.getElementById('tabProductsView').classList.toggle('hidden', tab !== 'products');
       document.getElementById('tabOrdersView').classList.toggle('hidden', tab !== 'orders');
+      document.getElementById('tabMarketingView').classList.toggle('hidden', tab !== 'marketing');
       
       const btnActive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2";
       const btnInactive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2";
       
       document.getElementById('tabProductsBtn').className = tab === 'products' ? btnActive : btnInactive;
       document.getElementById('tabOrdersBtn').className = tab === 'orders' ? btnActive : btnInactive;
+      document.getElementById('tabMarketingBtn').className = tab === 'marketing' ? btnActive : btnInactive;
+
+      if (tab === 'marketing') {
+        refreshMarketingWidgets();
+      }
     }
 
     function calculateDashboard(filteredOrders) {
@@ -787,7 +1087,7 @@
         db.collection('malala_store').doc('catalog').set({
           products: adminProducts,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch((err) => {
+        }, { merge: true }).catch((err) => {
           console.error('Erro ao salvar catálogo no Firebase:', err);
           alert('Atenção: Não foi possível salvar a alteração na nuvem (Firebase). Verifique se a sua sessão de Admin está ativa.');
         });

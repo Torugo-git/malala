@@ -13,7 +13,15 @@
   <meta property="og:image" content="https://www.malalastore.com.br/logo-banner.png">
   <meta property="og:url" content="https://www.malalastore.com.br/">
   <meta property="og:type" content="website">
+  <link rel="canonical" href="https://www.malalastore.com.br/">
   <meta name="theme-color" content="#FF5500">
+
+  <!-- VERIFICAÇÃO DE DOMÍNIO (PREENCHER COM AS TAGS DO GESTOR DE TRÁFEGO) -->
+  <!-- <meta name="facebook-domain-verification" content="COLE_AQUI_O_CODIGO_META" /> -->
+  <!-- <meta name="google-site-verification" content="COLE_AQUI_O_CODIGO_GOOGLE" /> -->
+
+  <!-- Rastreamento Centralizado (Meta Pixel / GTM / GA4) -->
+  <script src="tracking.js"></script>
 
   <!-- Firebase SDK (Compat version for vanilla HTML) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -802,6 +810,9 @@
     }
 
     function consultProductWhatsApp(title) {
+      if (window.MalalaTracking) {
+        window.MalalaTracking.contact('whatsapp_consult', { content_name: title });
+      }
       const msg = `Olá! Vim pelo site da Malala Store e gostaria de consultar o valor e a disponibilidade do produto: *${title}*`;
       window.open(`https://wa.me/5521992663800?text=${encodeURIComponent(msg)}`, '_blank');
     }
@@ -871,15 +882,38 @@
     }
 
     let products = loadProducts();
+    let deepLinkHandled = false;
+
+    function tryOpenDeepLinkProduct() {
+      if (deepLinkHandled) return;
+      const params = new URLSearchParams(window.location.search);
+      const productIdParam = params.get('produto') || params.get('product');
+      if (!productIdParam) {
+        deepLinkHandled = true;
+        return;
+      }
+      const match = products.find(p => String(p.id) === String(productIdParam));
+      if (match) {
+        deepLinkHandled = true;
+        openProductModal(match.id);
+      }
+    }
 
     function initFirebaseSync() {
       if (!db) return;
       db.collection('malala_store').doc('catalog').onSnapshot((doc) => {
-        if (doc.exists && doc.data().products) {
-          products = doc.data().products.map(normalizeProduct);
-          localStorage.setItem('malala_products', JSON.stringify(products));
-          renderProducts();
-          verifyCartStock(); 
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.marketing && window.MalalaTracking && typeof window.MalalaTracking.configure === 'function') {
+            window.MalalaTracking.configure(data.marketing);
+          }
+          if (data.products) {
+            products = data.products.map(normalizeProduct);
+            localStorage.setItem('malala_products', JSON.stringify(products));
+            renderProducts();
+            verifyCartStock();
+            tryOpenDeepLinkProduct();
+          }
         }
       }, (err) => {
         console.warn("Erro ao sincronizar com Firebase:", err);
@@ -1107,6 +1141,10 @@
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
       toggleCart(false);
 
+      if (window.MalalaTracking) {
+        window.MalalaTracking.initiateCheckout(cart, 'mercadopago');
+      }
+
       if (currentUser) {
         document.getElementById('payEmail').value = currentUser.email || '';
         if (currentUser.displayName) {
@@ -1161,6 +1199,14 @@
 
         if (data.status === 'Pago') {
           clearInterval(pixPollingInterval);
+          if (window.MalalaTracking) {
+            window.MalalaTracking.purchase({
+              orderId,
+              value: data.totalAmount,
+              items: data.items,
+              paymentMethod: 'pix'
+            });
+          }
           document.getElementById('pixResultStep').classList.add('hidden');
           document.getElementById('approvedOrderId').innerText = `#${orderId}`;
           document.getElementById('paymentApprovedStep').classList.remove('hidden');
@@ -1212,7 +1258,15 @@
         address: shippingAddress
       };
 
-      const formattedItems = cart.map(i => ({ id: String(i.id), title: i.title, quantity: i.qty, price: i.price }));
+      const formattedItems = cart.map(i => ({ id: String(i.id), title: i.title, category: i.category || '', quantity: i.qty, price: i.price }));
+      const orderTotalValue = Number(formattedItems.reduce((acc, i) => acc + (i.price * i.quantity), 0).toFixed(2));
+      const trackingData = window.MalalaTracking && typeof window.MalalaTracking.getMetaBrowserData === 'function'
+        ? window.MalalaTracking.getMetaBrowserData()
+        : null;
+
+      if (window.MalalaTracking) {
+        window.MalalaTracking.addPaymentInfo(formattedItems, selectedPayMethod);
+      }
 
       const btn = document.getElementById('paySubmitBtn');
       btn.disabled = true;
@@ -1229,7 +1283,7 @@
           const res = await fetch(`${backendUrl}/api/payments/pix`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: formattedItems, payer: payerData }),
+            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -1242,6 +1296,15 @@
           }
 
           if (data.success && data.qrCodeBase64) {
+            if (window.MalalaTracking && data.orderId) {
+              window.MalalaTracking.savePendingOrder({
+                orderId: data.orderId,
+                value: orderTotalValue,
+                items: formattedItems,
+                paymentMethod: 'pix'
+              });
+            }
+
             document.getElementById('pixQrCodeImg').src = `data:image/jpeg;base64,${data.qrCodeBase64}`;
             document.getElementById('pixCopyPasteInput').value = data.qrCodeCopyPaste;
             document.getElementById('checkoutFormStep').classList.add('hidden');
@@ -1262,7 +1325,7 @@
           const res = await fetch(`${backendUrl}/api/payments/checkout-pro`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: formattedItems, payer: payerData }),
+            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -1275,7 +1338,14 @@
           }
 
           if (data.init_point) {
-            cart = []; updateCart();
+            if (window.MalalaTracking && data.orderId) {
+              window.MalalaTracking.savePendingOrder({
+                orderId: data.orderId,
+                value: orderTotalValue,
+                items: formattedItems,
+                paymentMethod: 'mercado_pago_pro'
+              });
+            }
             window.location.href = data.init_point;
           } else {
             alert('URL de pagamento não retornada pelo Mercado Pago.');
@@ -1321,11 +1391,19 @@
       renderProducts();
       updateCart();
       initFirebaseSync();
+      tryOpenDeepLinkProduct();
 
       const urlParams = new URLSearchParams(window.location.search);
       const mpStatus = urlParams.get('collection_status') || urlParams.get('status');
       const mpOrderRef = urlParams.get('external_reference');
       if (mpStatus === 'approved' || urlParams.get('order') === 'success') {
+        if (window.MalalaTracking) {
+          window.MalalaTracking.trackMercadoPagoReturn({
+            orderId: mpOrderRef,
+            status: 'approved',
+            backendUrl: 'https://malala-backend-1.onrender.com'
+          });
+        }
         cart = [];
         updateCart();
         document.getElementById('checkoutFormStep').classList.add('hidden');
@@ -1643,6 +1721,10 @@
 
       document.body.classList.add('overflow-hidden');
       document.getElementById('productModal').classList.remove('hidden');
+
+      if (window.MalalaTracking) {
+        window.MalalaTracking.viewContent(p);
+      }
     }
 
     function closeProductModal() { document.body.classList.remove('overflow-hidden'); document.getElementById('productModal').classList.add('hidden'); }
@@ -1659,6 +1741,10 @@
         ex.qty++;
       } else cart.push({...p, qty: 1});
       updateCart(); showToast('Produto Adicionado!', `${p.title} foi adicionado ao seu carrinho.`);
+
+      if (window.MalalaTracking) {
+        window.MalalaTracking.addToCart(p, 1);
+      }
     }
 
     function changeQty(id, delta) {
@@ -1693,6 +1779,13 @@
 
     function checkoutWhatsApp() {
       if (cart.length === 0) return alert('Seu carrinho está vazio!');
+      if (window.MalalaTracking) {
+        window.MalalaTracking.initiateCheckout(cart, 'whatsapp');
+        window.MalalaTracking.contact('whatsapp_checkout', {
+          value: Number(cart.reduce((a,b) => a + (b.price * b.qty), 0).toFixed(2)),
+          currency: 'BRL'
+        });
+      }
       let msg = '*NOVO PEDIDO - MALALA STORE*\n\n';
       cart.forEach(i => msg += `• ${i.qty}x ${i.title} - R$ ${(i.price * i.qty).toFixed(2).replace('.', ',')}\n`);
       msg += `\n*Total do Pedido:* R$ ${cart.reduce((a,b) => a + (b.price * b.qty), 0).toFixed(2).replace('.', ',')}\n\nPodemos fechar o pedido?`;
