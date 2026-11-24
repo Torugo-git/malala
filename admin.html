@@ -251,7 +251,7 @@
                 É um link que lista todos os seus produtos com <strong>foto, preço e estoque atualizados em tempo real</strong>. O gestor cola esse link no Catálogo do Instagram/Facebook ou no Google Shopping. Se um item zerar no estoque, o anúncio atualiza sozinho — e ao clicar, a loja já abre direto aquele produto.
               </p>
               <p class="text-[10px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded-lg p-2 leading-relaxed">
-                <strong>Sobre itens "Sob Consulta" (R$ 0):</strong> eles ficam fora do XML de propósito, pois Meta e Google exigem preço real para catálogo. <strong>Nunca coloque preço simbólico (ex.: R$ 1,00)</strong>, pois o cliente conseguiria comprar por esse valor e o anúncio pode ser bloqueado. Para divulgar itens sob consulta, use anúncios diretos para o WhatsApp ou link do produto.
+                <strong>Sobre itens "Sob Consulta" (R$ 0):</strong> eles ficam fora do XML de propósito, pois Meta e Google exigem preço real para catálogo. Se quiser que um item entre no XML, basta cadastrar o <strong>valor real</strong> dele no catálogo. <strong>Nunca coloque preço simbólico (ex.: R$ 1,00)</strong>, pois o cliente conseguiria comprar por esse valor e o anúncio pode ser bloqueado. Se preferir manter sob consulta, divulgue com anúncio direto para o WhatsApp ou link do produto.
               </p>
             </div>
 
@@ -378,11 +378,24 @@
             </div>
           </div>
 
-          <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
-            <span class="text-[10px] text-gray-400">Itens "Sob Consulta" (R$ 0) são filtrados automaticamente.</span>
-            <a href="https://malala-backend-1.onrender.com/api/catalog/feed.xml" target="_blank" rel="noopener" class="text-xs font-bold text-[#FF5500] hover:underline flex items-center gap-1">
-              Testar XML <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            </a>
+          <div class="pt-3 border-t border-gray-100 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex flex-col items-start gap-1">
+                <span class="text-[10px] text-gray-400">Itens "Sob Consulta" (R$ 0) são filtrados automaticamente.</span>
+                <button type="button" onclick="document.getElementById('xmlImportantNote').classList.toggle('hidden')" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors">
+                  <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Observação importante
+                </button>
+              </div>
+              <a href="https://malala-backend-1.onrender.com/api/catalog/feed.xml" target="_blank" rel="noopener" class="text-xs font-bold text-[#FF5500] hover:underline flex items-center gap-1 shrink-0">
+                Testar XML <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            </div>
+            <div id="xmlImportantNote" class="hidden text-[10px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3 leading-relaxed space-y-1">
+              <p><strong>Por que itens R$ 0 não aparecem no XML?</strong> Meta e Google exigem preço real maior que zero para aprovar anúncios de catálogo.</p>
+              <p>• Quer que o produto apareça no XML? Cadastre o <strong>valor real</strong> dele no catálogo.</p>
+              <p>• <strong>Nunca coloque preço simbólico (ex.: R$ 1,00)</strong>, pois o cliente conseguiria finalizar a compra por esse valor e o anúncio pode ser bloqueado.</p>
+              <p>• Quer manter como "Sob Consulta"? Divulgue com anúncio normal mandando direto para o WhatsApp ou para o link do produto.</p>
+            </div>
           </div>
         </div>
 
