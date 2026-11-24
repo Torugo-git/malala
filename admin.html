@@ -213,6 +213,79 @@
     <!-- ABA 3: MARKETING & TRÁFEGO -->
     <div id="tabMarketingView" class="hidden space-y-6">
 
+      <!-- GUIA EXPLICATIVO (LINGUAGEM SIMPLES PARA O LOJISTA E GESTOR) -->
+      <div class="bg-gradient-to-r from-orange-50 via-white to-amber-50/60 p-5 rounded-2xl border border-[#FF5500]/25 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-[#FF5500]/15 text-[#FF5500] flex items-center justify-center text-lg shrink-0">
+              <i class="fa-solid fa-circle-question"></i>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-gray-900 text-sm">Como funciona este painel? (Guia Rápido)</h3>
+              <p class="text-xs text-gray-600 mt-0.5">Explicação simples de cada ferramenta — feito tanto para o dono da loja quanto para o gestor de tráfego.</p>
+            </div>
+          </div>
+          <button type="button" onclick="toggleMarketingGuide()" id="toggleGuideBtn" class="bg-white hover:bg-[#FF5500] text-gray-800 hover:text-white border border-gray-200 hover:border-[#FF5500] text-xs font-bold px-4 py-2 rounded-xl transition-all shrink-0 flex items-center justify-center gap-2 shadow-sm">
+            <i class="fa-solid fa-book-open"></i> <span id="toggleGuideBtnText">Abrir Guia Explicativo</span>
+          </button>
+        </div>
+
+        <div id="marketingGuideContent" class="hidden mt-5 pt-5 border-t border-[#FF5500]/15 space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-gray-200/80 space-y-1.5">
+              <h4 class="text-xs font-black text-gray-900 flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-[11px]"><i class="fa-solid fa-satellite-dish"></i></span>
+                1. Pixels e Tags (O "radar" dos anúncios)
+              </h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed">
+                É o código que conecta a loja ao <strong>Instagram/Facebook (Meta)</strong>, <strong>Google</strong> e <strong>TikTok</strong>. Quando o gestor cola o ID aqui e clica em <strong>Salvar</strong>, essas plataformas passam a enxergar automaticamente quem visitou o site, quem abriu um produto, quem colocou no carrinho e quem realmente pagou — permitindo mostrar anúncios para pessoas com muito mais chance de comprar.
+              </p>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200/80 space-y-1.5">
+              <h4 class="text-xs font-black text-gray-900 flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-orange-100 text-[#FF5500] flex items-center justify-center text-[11px]"><i class="fa-solid fa-rss"></i></span>
+                2. Feed XML (Vitrine automática nos anúncios)
+              </h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed">
+                É um link que lista todos os seus produtos com <strong>foto, preço e estoque atualizados em tempo real</strong>. O gestor cola esse link no Catálogo do Instagram/Facebook ou no Google Shopping. Se você mudar um preço ou um item zerar no estoque aqui no painel, o anúncio atualiza sozinho — e quando o cliente clica no anúncio, a loja já abre direto aquele produto na tela.
+              </p>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200/80 space-y-1.5">
+              <h4 class="text-xs font-black text-gray-900 flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[11px]"><i class="fa-solid fa-link"></i></span>
+                3. Gerador de Links UTM (Saber de onde vêm as vendas)
+              </h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed">
+                Cria links especiais com "etiquetas" invisíveis para você e o gestor saberem exatamente <strong>qual campanha, Story, Reels ou Bio</strong> trouxe mais vendas. Você pode gerar um link para a página inicial da loja ou apontando direto para um perfume ou produto específico.
+              </p>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200/80 space-y-1.5">
+              <h4 class="text-xs font-black text-gray-900 flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[11px]"><i class="fa-solid fa-shield-halved"></i></span>
+                4. Eventos Automáticos & CAPI (Venda confirmada de verdade)
+              </h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed">
+                A loja já avisa as plataformas em cada etapa da compra. O evento mais importante (<strong>Purchase / Compra</strong>) só é disparado <strong>depois que o Mercado Pago confirma o pagamento</strong> (seja no PIX ou no Cartão), evitando marcar vendas falsas ou duplicadas — mesmo que o cliente recarregue a página.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-gray-900 text-gray-200 p-4 rounded-xl text-xs space-y-2">
+            <p class="font-extrabold text-white flex items-center gap-2">
+              <i class="fa-solid fa-rocket text-[#FF5500]"></i> Passo a passo rápido para começar a anunciar:
+            </p>
+            <ol class="list-decimal pl-5 space-y-1 text-[11px] text-gray-300 leading-relaxed">
+              <li><strong class="text-white">Ativar o Pixel:</strong> Cole o <em>Meta Pixel ID</em> (e GTM/GA4 se usar) nos campos abaixo e clique em <strong class="text-white">Salvar Configurações de Tráfego</strong>. Não precisa mexer em nenhum código — funciona na hora.</li>
+              <li><strong class="text-white">Conectar o Catálogo:</strong> Copie a <em>URL do Feed XML</em> e cole no Gerenciador de Comércio da Meta (ou Google Merchant Center) para sincronizar os produtos automaticamente.</li>
+              <li><strong class="text-white">Validar (opcional):</strong> Marque o <em>Modo Debug</em>, abra a loja e clique em um produto/carrinho para testar (ou use a extensão <em>Meta Pixel Helper</em>). Depois, desmarque o Modo Debug.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       <!-- PIXELS E TAGS EM TEMPO REAL -->
       <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-5">
@@ -579,6 +652,14 @@
           refreshMarketingWidgets();
         }
       });
+    }
+
+    function toggleMarketingGuide() {
+      const content = document.getElementById('marketingGuideContent');
+      const btnText = document.getElementById('toggleGuideBtnText');
+      if (!content) return;
+      const isHidden = content.classList.toggle('hidden');
+      if (btnText) btnText.innerText = isHidden ? 'Abrir Guia Explicativo' : 'Ocultar Guia';
     }
 
     function populateMarketingForm(mkt) {
