@@ -19,5 +19,10 @@ service cloud.firestore {
       allow read: if isAdmin() || (request.auth != null && resource.data.payer.email == request.auth.token.email);
       allow update, delete: if isAdmin();
     }
+
+    // Regras de Carrinhos Abandonados (somente Admin lê/gerencia; captura via Backend Admin SDK)
+    match /abandoned_carts/{cartId} {
+      allow read, write: if isAdmin();
+    }
   }
 }

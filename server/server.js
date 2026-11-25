@@ -3,6 +3,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
 const { initializeApp, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { MercadoPagoConfig, Payment, Preference } = require('mercadopago');
 
@@ -242,10 +243,171 @@ async function sendMetaCapiPurchase(orderId, orderData) {
   }
 }
 
+// =========================================================================
+// MÓDULO WHATSAPP CLOUD API (API OFICIAL DA META - 6 TEMPLATES + CARRINHO)
+// =========================================================================
+const ADMIN_EMAIL = 'malalastore.pedidos@gmail.com';
+const WA_TEMPLATES = {
+  abandoned_cart: () => (process.env.WA_TPL_ABANDONED_CART || '').trim(),
+  order_created: () => (process.env.WA_TPL_ORDER_CREATED || '').trim(),
+  order_paid: () => (process.env.WA_TPL_ORDER_PAID || '').trim(),
+  order_packed: () => (process.env.WA_TPL_ORDER_PACKED || '').trim(),
+  order_shipped: () => (process.env.WA_TPL_ORDER_SHIPPED || '').trim(),
+  order_cancelled: () => (process.env.WA_TPL_ORDER_CANCELLED || '').trim()
+};
+
+function normalizeWhatsAppPhone(rawPhone) {
+  const digits = String(rawPhone || '').replace(/\D/g, '');
+  if (digits.length < 10) return '';
+  if (digits.startsWith('55') && digits.length >= 12) return digits;
+  return `55${digits}`;
+}
+
+async function sendWhatsAppTemplate({ toPhone, templateName, bodyParams = [] }) {
+  const phoneNumberId = (process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim();
+  const accessToken = (process.env.WHATSAPP_ACCESS_TOKEN || '').trim();
+  const langCode = (process.env.WHATSAPP_TEMPLATE_LANG || 'pt_BR').trim();
+
+  if (!phoneNumberId || !accessToken || !templateName) {
+    return { sent: false, skipped: true, reason: 'not_configured' };
+  }
+
+  const normalizedTo = normalizeWhatsAppPhone(toPhone);
+  if (!normalizedTo) {
+    return { sent: false, skipped: true, reason: 'invalid_phone' };
+  }
+
+  const templateObj = {
+    name: templateName,
+    language: { code: langCode }
+  };
+
+  if (Array.isArray(bodyParams) && bodyParams.length > 0) {
+    templateObj.components = [
+      {
+        type: 'body',
+        parameters: bodyParams.map(val => ({ type: 'text', text: String(val ?? '') }))
+      }
+    ];
+  }
+
+  try {
+    const waRes = await fetch(
+      `https://graph.facebook.com/v21.0/${encodeURIComponent(phoneNumberId)}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: normalizedTo,
+          type: 'template',
+          template: templateObj
+        })
+      }
+    );
+
+    if (waRes.ok) {
+      console.log(`💬 [WHATSAPP API] Template "${templateName}" enviado para ${normalizedTo}`);
+      return { sent: true };
+    } else {
+      const errText = await waRes.text();
+      console.error(`❌ [WHATSAPP API] Falha ao enviar "${templateName}" para ${normalizedTo}:`, errText);
+      return { sent: false, error: errText };
+    }
+  } catch (err) {
+    console.error('❌ [WHATSAPP API] Erro de rede:', err);
+    return { sent: false, error: err.message };
+  }
+}
+
+async function notifyWhatsAppEvent(eventKey, { phone, customerName, orderId, totalAmount, itemsSummary }) {
+  const resolver = WA_TEMPLATES[eventKey];
+  const templateName = resolver ? resolver() : '';
+  if (!templateName) return { sent: false, skipped: true };
+
+  const firstName = String(customerName || 'Cliente').trim().split(/\s+/)[0] || 'Cliente';
+  const formattedTotal = `R$ ${Number(totalAmount || 0).toFixed(2).replace('.', ',')}`;
+
+  // Parâmetros padrão ({{1}} nome, {{2}} pedido/resumo, {{3}} valor) — ajustáveis via WA_SEND_PARAMS=false se o template não tiver variáveis
+  const sendParams = (process.env.WA_SEND_PARAMS || 'true').toLowerCase() !== 'false';
+  let bodyParams = [];
+  if (sendParams) {
+    if (eventKey === 'abandoned_cart') {
+      bodyParams = [firstName, itemsSummary || 'seus itens favoritos', formattedTotal];
+    } else {
+      bodyParams = [firstName, String(orderId || ''), formattedTotal];
+    }
+  }
+
+  return sendWhatsAppTemplate({ toPhone: phone, templateName, bodyParams });
+}
+
+async function markAbandonedCartConverted(sessionId, orderId) {
+  if (!db || !sessionId) return;
+  try {
+    const cleanId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+    if (!cleanId) return;
+    await db.collection('abandoned_carts').doc(cleanId).set({
+      status: 'converted',
+      convertedOrderId: String(orderId || ''),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (err) {
+    console.warn('⚠️ Falha ao marcar carrinho abandonado como convertido:', err.message);
+  }
+}
+
+async function processAbandonedCarts() {
+  if (!db) return { processed: 0, notified: 0 };
+  const delayMinutes = Math.max(5, parseInt(process.env.ABANDONED_CART_DELAY_MINUTES || '15', 10) || 15);
+  const cutoffMs = Date.now() - delayMinutes * 60 * 1000;
+  let processed = 0;
+  let notified = 0;
+
+  try {
+    const snap = await db.collection('abandoned_carts')
+      .where('status', '==', 'open')
+      .limit(50)
+      .get();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if (data.notified) continue;
+      const updatedMs = data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : (data.updatedAtMs || 0);
+      if (!updatedMs || updatedMs > cutoffMs) continue;
+
+      processed++;
+      const itemsSummary = (data.items || []).map(i => `${i.quantity || 1}x ${i.title}`).join(', ');
+      const result = await notifyWhatsAppEvent('abandoned_cart', {
+        phone: data.phone,
+        customerName: data.name,
+        totalAmount: data.totalAmount,
+        itemsSummary
+      });
+
+      if (result.sent) {
+        notified++;
+        await doc.ref.update({
+          notified: true,
+          status: 'notified',
+          notifiedAt: FieldValue.serverTimestamp()
+        });
+      }
+    }
+  } catch (err) {
+    console.error('❌ Erro ao processar carrinhos abandonados:', err);
+  }
+
+  return { processed, notified };
+}
+
 // ROTA 1: PIX
 app.post('/api/payments/pix', async (req, res) => {
   try {
-    const { items, payer, shippingAddress } = req.body;
+    const { items, payer, shippingAddress, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
     if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
@@ -286,6 +448,8 @@ app.post('/api/payments/pix', async (req, res) => {
       return res.status(500).json({ error: 'Falha ao registrar pedido no banco de dados.' });
     }
 
+    await markAbandonedCartConverted(abandonedCartSessionId, orderId);
+
     const backendUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
     
     const paymentData = {
@@ -316,6 +480,13 @@ app.post('/api/payments/pix', async (req, res) => {
       pixCopyPaste: pixInfo.qr_code
     });
 
+    notifyWhatsAppEvent('order_created', {
+      phone: cleanPhone,
+      customerName: payer.first_name,
+      orderId,
+      totalAmount
+    }).catch(() => {});
+
     res.status(200).json({
       success: true,
       orderId: orderId,
@@ -332,7 +503,7 @@ app.post('/api/payments/pix', async (req, res) => {
 // ROTA 2: CHECKOUT PRO (MERCADO PAGO)
 app.post('/api/payments/checkout-pro', async (req, res) => {
   try {
-    const { items, payer, shippingAddress } = req.body;
+    const { items, payer, shippingAddress, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
     if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
@@ -372,6 +543,8 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     } catch (dbError) {
       return res.status(500).json({ error: 'Falha ao registrar pedido no banco de dados.' });
     }
+
+    await markAbandonedCartConverted(abandonedCartSessionId, orderId);
 
     const backendUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
 
@@ -416,6 +589,13 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
       mercadoPagoPreferenceId: preferenceResponse.id,
       initPoint: preferenceResponse.init_point
     });
+
+    notifyWhatsAppEvent('order_created', {
+      phone: cleanPhone,
+      customerName: payer.first_name,
+      orderId,
+      totalAmount
+    }).catch(() => {});
 
     res.status(200).json({
       success: true,
@@ -600,6 +780,14 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
           // Enviar evento Purchase via Meta Conversions API (CAPI) com deduplicação por event_id
           await sendMetaCapiPurchase(orderId, orderJustApproved);
 
+          // Notificar Pedido Pago na API Oficial do WhatsApp (se configurada)
+          await notifyWhatsAppEvent('order_paid', {
+            phone: orderJustApproved.payer && orderJustApproved.payer.phone,
+            customerName: orderJustApproved.payer && orderJustApproved.payer.name,
+            orderId,
+            totalAmount: orderJustApproved.totalAmount
+          });
+
           // Enviar email de confirmação via EmailJS
           try {
             const payerEmail = orderJustApproved.payer.email;
@@ -640,10 +828,17 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
         }
       } else if (status === 'cancelled' || status === 'rejected') {
         const orderSnap = await orderRef.get();
-        if (orderSnap.exists && orderSnap.data().status !== 'Pago') {
+        if (orderSnap.exists && orderSnap.data().status !== 'Pago' && orderSnap.data().status !== 'Cancelado') {
+          const orderData = orderSnap.data();
           await orderRef.update({
             status: 'Cancelado',
             updatedAt: FieldValue.serverTimestamp()
+          });
+          await notifyWhatsAppEvent('order_cancelled', {
+            phone: orderData.payer && orderData.payer.phone,
+            customerName: orderData.payer && orderData.payer.name,
+            orderId,
+            totalAmount: orderData.totalAmount
           });
         }
       }
@@ -653,7 +848,104 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
   }
 });
 
+// ROTA 4: CAPTURA DE CARRINHO ABANDONADO (FRONTEND CHECKOUT)
+app.post('/api/abandoned-carts', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Banco de dados desconectado.' });
+    const { sessionId, name, email, phone, items, totalAmount } = req.body || {};
+
+    const cleanSessionId = String(sessionId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+    const normalizedPhone = normalizeWhatsAppPhone(phone);
+    if (!cleanSessionId || !normalizedPhone || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Dados insuficientes para registrar carrinho.' });
+    }
+
+    const sanitizedItems = items.slice(0, 20).map(i => ({
+      id: String(i.id || ''),
+      title: String(i.title || 'Produto').slice(0, 120),
+      quantity: Math.max(1, parseInt(i.quantity || i.qty || 1, 10) || 1),
+      price: Number(parseFloat(i.price || 0).toFixed(2)) || 0
+    }));
+
+    const computedTotal = Number(sanitizedItems.reduce((acc, i) => acc + (i.price * i.quantity), 0).toFixed(2));
+    const cartRef = db.collection('abandoned_carts').doc(cleanSessionId);
+    const existing = await cartRef.get();
+
+    // Não reabre carrinho que já virou pedido pago/criado
+    if (existing.exists && existing.data().status === 'converted') {
+      return res.status(200).json({ ok: true, skipped: 'already_converted' });
+    }
+
+    await cartRef.set({
+      sessionId: cleanSessionId,
+      name: String(name || 'Cliente').trim().slice(0, 100),
+      email: String(email || '').trim().toLowerCase().slice(0, 120),
+      phone: String(phone || '').trim().slice(0, 30),
+      normalizedPhone,
+      items: sanitizedItems,
+      totalAmount: Number(totalAmount || computedTotal || 0),
+      status: existing.exists && existing.data().notified ? 'notified' : 'open',
+      notified: existing.exists ? Boolean(existing.data().notified) : false,
+      updatedAtMs: Date.now(),
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() })
+    }, { merge: true });
+
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error('❌ Erro ao registrar carrinho abandonado:', error);
+    res.status(500).json({ error: 'Falha ao salvar carrinho abandonado.' });
+  }
+});
+
+// ROTA 5: PROCESSAR CARRINHOS ABANDONADOS (CRON / UPTIMEROBOT)
+app.get('/api/cron/abandoned-carts', async (req, res) => {
+  const result = await processAbandonedCarts();
+  res.status(200).json({ ok: true, ...result });
+});
+
+// ROTA 6: DISPARO DE STATUS DE PEDIDO NO WHATSAPP (AUTENTICADO COMO ADMIN)
+app.post('/api/whatsapp/order-status', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Banco de dados desconectado.' });
+    const authHeader = String(req.headers.authorization || '');
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (!idToken) return res.status(401).json({ error: 'Token de autenticação ausente.' });
+
+    const decoded = await getAuth().verifyIdToken(idToken);
+    if (!decoded || decoded.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+    }
+
+    const { orderId, eventKey } = req.body || {};
+    const allowedEvents = ['order_paid', 'order_packed', 'order_shipped', 'order_cancelled'];
+    if (!orderId || !allowedEvents.includes(eventKey)) {
+      return res.status(400).json({ error: 'Parâmetros inválidos.' });
+    }
+
+    const orderSnap = await db.collection('orders').doc(String(orderId)).get();
+    if (!orderSnap.exists) return res.status(404).json({ error: 'Pedido não encontrado.' });
+
+    const orderData = orderSnap.data();
+    const result = await notifyWhatsAppEvent(eventKey, {
+      phone: orderData.payer && orderData.payer.phone,
+      customerName: orderData.payer && orderData.payer.name,
+      orderId: String(orderId),
+      totalAmount: orderData.totalAmount
+    });
+
+    res.status(200).json({ ok: true, ...result });
+  } catch (error) {
+    console.error('❌ Erro ao disparar notificação WhatsApp de status:', error);
+    res.status(500).json({ error: 'Falha ao enviar notificação.' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor Malala Store rodando na porta ${PORT}`);
+  // Verifica carrinhos abandonados a cada 5 minutos enquanto o servidor estiver ativo
+  setInterval(() => {
+    processAbandonedCarts().catch(() => {});
+  }, 5 * 60 * 1000);
 });

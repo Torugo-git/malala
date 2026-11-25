@@ -1132,7 +1132,61 @@
         else if (val.length > 2) val = `(${val.substring(0,2)}) ${val.substring(2)}`;
         e.target.value = val;
       }
+
+      if (['payFirstName', 'payLastName', 'payEmail', 'payPhone'].includes(e.target.id)) {
+        scheduleAbandonedCartCapture();
+      }
     });
+
+    let abandonedCartTimer = null;
+    function getCheckoutSessionId() {
+      try {
+        let id = sessionStorage.getItem('malala_checkout_session_id');
+        if (!id) {
+          id = 'chk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          sessionStorage.setItem('malala_checkout_session_id', id);
+        }
+        return id;
+      } catch (e) {
+        return 'chk_' + Date.now();
+      }
+    }
+
+    function resetCheckoutSessionId() {
+      try { sessionStorage.removeItem('malala_checkout_session_id'); } catch (e) {}
+    }
+
+    function scheduleAbandonedCartCapture() {
+      if (abandonedCartTimer) clearTimeout(abandonedCartTimer);
+      abandonedCartTimer = setTimeout(sendAbandonedCartSnapshot, 1800);
+    }
+
+    function sendAbandonedCartSnapshot() {
+      if (!cart || cart.length === 0) return;
+      const phone = (document.getElementById('payPhone')?.value || '').trim();
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10) return;
+
+      const firstName = (document.getElementById('payFirstName')?.value || '').trim();
+      const lastName = (document.getElementById('payLastName')?.value || '').trim();
+      const email = (document.getElementById('payEmail')?.value || '').trim().toLowerCase();
+      const fullName = `${firstName} ${lastName}`.trim() || 'Cliente';
+      const items = cart.map(i => ({ id: String(i.id), title: i.title, quantity: i.qty, price: i.price }));
+      const totalAmount = Number(items.reduce((acc, i) => acc + (i.price * i.quantity), 0).toFixed(2));
+
+      fetch('https://malala-backend-1.onrender.com/api/abandoned-carts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: getCheckoutSessionId(),
+          name: fullName,
+          email,
+          phone,
+          items,
+          totalAmount
+        })
+      }).catch(() => {});
+    }
 
     let lastBackendWarmup = 0;
     function warmupBackend() {
@@ -1344,12 +1398,13 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
+      const abandonedCartSessionId = getCheckoutSessionId();
       try {
         if (selectedPayMethod === 'pix') {
           const res = await fetch(`${backendUrl}/api/payments/pix`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData }),
+            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData, abandonedCartSessionId }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -1362,6 +1417,7 @@
           }
 
           if (data.success && data.qrCodeBase64) {
+            resetCheckoutSessionId();
             if (window.MalalaTracking && data.orderId) {
               window.MalalaTracking.savePendingOrder({
                 orderId: data.orderId,
@@ -1391,7 +1447,7 @@
           const res = await fetch(`${backendUrl}/api/payments/checkout-pro`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData }),
+            body: JSON.stringify({ items: formattedItems, payer: payerData, tracking: trackingData, abandonedCartSessionId }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -1404,6 +1460,7 @@
           }
 
           if (data.init_point) {
+            resetCheckoutSessionId();
             if (window.MalalaTracking && data.orderId) {
               window.MalalaTracking.savePendingOrder({
                 orderId: data.orderId,

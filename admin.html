@@ -114,6 +114,9 @@
       <button onclick="switchTab('marketing')" id="tabMarketingBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
         <i class="fa-solid fa-bullhorn text-[#FF5500]"></i> Marketing & Tráfego
       </button>
+      <button onclick="switchTab('abandoned')" id="tabAbandonedBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
+        <i class="fa-solid fa-cart-arrow-down text-[#FF5500]"></i> Carrinhos Abandonados <span id="abandonedBadge" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
+      </button>
     </div>
 
     <!-- ABA 1: CATÁLOGO DE PRODUTOS -->
@@ -481,6 +484,27 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- ABA 4: CARRINHOS ABANDONADOS & WHATSAPP OFICIAL -->
+    <div id="tabAbandonedView" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-extrabold text-gray-900 text-base flex items-center gap-2">
+            <i class="fa-solid fa-cart-arrow-down text-[#FF5500]"></i> Carrinhos Abandonados & Recuperação no WhatsApp
+          </h3>
+          <p class="text-xs text-gray-500 mt-0.5">Clientes que preencheram Nome + WhatsApp no checkout e saíram sem pagar. Se a API Oficial do WhatsApp estiver ativa no Render, o disparo é automático após 15 min.</p>
+        </div>
+        <button onclick="loadAbandonedCarts()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shrink-0">
+          <i class="fa-solid fa-arrows-rotate text-[#FF5500]"></i> Atualizar Lista
+        </button>
+      </div>
+
+      <div id="abandonedCartsContainer" class="space-y-3">
+        <div class="bg-white p-10 text-center rounded-2xl border border-gray-200 text-xs text-gray-400">
+          Clique em "Atualizar Lista" ou aguarde novos carrinhos abandonados.
+        </div>
+      </div>
     </div>
   </main>
 
@@ -863,6 +887,7 @@
       document.getElementById('tabProductsView').classList.toggle('hidden', tab !== 'products');
       document.getElementById('tabOrdersView').classList.toggle('hidden', tab !== 'orders');
       document.getElementById('tabMarketingView').classList.toggle('hidden', tab !== 'marketing');
+      document.getElementById('tabAbandonedView').classList.toggle('hidden', tab !== 'abandoned');
       
       const btnActive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2";
       const btnInactive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2";
@@ -870,10 +895,128 @@
       document.getElementById('tabProductsBtn').className = tab === 'products' ? btnActive : btnInactive;
       document.getElementById('tabOrdersBtn').className = tab === 'orders' ? btnActive : btnInactive;
       document.getElementById('tabMarketingBtn').className = tab === 'marketing' ? btnActive : btnInactive;
+      document.getElementById('tabAbandonedBtn').className = tab === 'abandoned' ? btnActive : btnInactive;
 
       if (tab === 'marketing') {
         refreshMarketingWidgets();
+      } else if (tab === 'abandoned') {
+        loadAbandonedCarts();
       }
+    }
+
+    let abandonedCartsList = [];
+
+    async function loadAbandonedCarts() {
+      const container = document.getElementById('abandonedCartsContainer');
+      if (!db || !container) return;
+      container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-gray-200"><p class="text-xs font-bold text-gray-400"><i class="fa-solid fa-spinner fa-spin text-[#FF5500] mr-2"></i> Carregando carrinhos abandonados...</p></div>`;
+      try {
+        const snap = await db.collection('abandoned_carts').orderBy('updatedAtMs', 'desc').limit(100).get();
+        abandonedCartsList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAbandonedCarts();
+      } catch (err) {
+        console.error('Erro ao carregar carrinhos abandonados:', err);
+        container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border border-amber-200 text-xs text-amber-800">Ainda não foi possível ler <code>abandoned_carts</code>. Confira se as novas <strong>firestore.rules</strong> já foram publicadas no Firebase Console.</div>`;
+      }
+    }
+
+    function renderAbandonedCarts() {
+      const container = document.getElementById('abandonedCartsContainer');
+      const openCount = abandonedCartsList.filter(c => c.status === 'open' || c.status === 'notified').length;
+      const badge = document.getElementById('abandonedBadge');
+      if (badge) badge.innerText = openCount;
+
+      if (!abandonedCartsList.length) {
+        container.innerHTML = `<div class="bg-white p-10 text-center rounded-2xl border border-gray-200 text-xs text-gray-400 font-bold">Nenhum carrinho abandonado registrado ainda.</div>`;
+        return;
+      }
+
+      container.innerHTML = abandonedCartsList.map(c => {
+        const safeId = escapeHtml(c.id);
+        const dateObj = c.updatedAtMs ? new Date(c.updatedAtMs) : new Date();
+        const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const phoneDigits = String(c.normalizedPhone || c.phone || '').replace(/\D/g, '');
+        const waPhone = phoneDigits ? (phoneDigits.startsWith('55') ? phoneDigits : '55' + phoneDigits) : '';
+        const itemsText = (c.items || []).map(i => `${Number(i.quantity || 1)}x ${i.title}`).join(', ');
+        const firstName = String(c.name || 'Cliente').trim().split(/\s+/)[0];
+        const recoveryMsg = `Olá ${firstName}! Vi aqui que você separou ${itemsText || 'alguns itens'} na Malala Store mas não concluiu o pedido. Ficou alguma dúvida? Posso te ajudar a finalizar por aqui! 😊`;
+
+        const statusMap = {
+          open: { label: 'Aguardando Recuperação', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+          notified: { label: 'Avisado via API Oficial', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
+          recovered: { label: 'Recuperado Manualmente', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+          converted: { label: 'Virou Pedido', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' }
+        };
+        const st = statusMap[c.status] || statusMap.open;
+
+        return `
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-black text-gray-900">${escapeHtml(c.name || 'Cliente')}</span>
+                <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${st.cls}">${st.label}</span>
+                <span class="text-[10px] text-gray-400"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
+              </div>
+              <span class="text-sm font-black text-[#FF5500]">R$ ${Number(c.totalAmount || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+
+            <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+              <p class="font-bold text-gray-800 mb-1">Itens no carrinho:</p>
+              <p>${escapeHtml(itemsText || 'Sem itens listados')}</p>
+              ${c.email ? `<p class="text-[10px] text-gray-400 mt-1">E-mail: ${escapeHtml(c.email)}</p>` : ''}
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                ${waPhone ? `<a href="https://wa.me/${waPhone}?text=${encodeURIComponent(recoveryMsg)}" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 shadow-sm"><i class="fa-brands fa-whatsapp"></i> Chamar no WhatsApp (${escapeHtml(c.phone || waPhone)})</a>` : ''}
+                ${c.status !== 'recovered' && c.status !== 'converted' ? `<button type="button" onclick="markAbandonedStatus('${safeId}', 'recovered')" class="bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-200 text-xs font-bold px-3 py-2 rounded-xl transition-colors"><i class="fa-solid fa-check mr-1"></i> Marcar Recuperado</button>` : ''}
+              </div>
+              <button type="button" onclick="deleteAbandonedCart('${safeId}')" class="text-gray-400 hover:text-red-500 text-xs p-2 transition-colors" title="Remover registro">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function markAbandonedStatus(id, newStatus) {
+      if (!db) return;
+      try {
+        await db.collection('abandoned_carts').doc(String(id)).update({ status: newStatus });
+        const item = abandonedCartsList.find(c => c.id === id);
+        if (item) item.status = newStatus;
+        renderAbandonedCarts();
+      } catch (err) {
+        alert('Erro ao atualizar status do carrinho.');
+      }
+    }
+
+    async function deleteAbandonedCart(id) {
+      if (!db || !confirm('Remover este registro de carrinho abandonado?')) return;
+      try {
+        await db.collection('abandoned_carts').doc(String(id)).delete();
+        abandonedCartsList = abandonedCartsList.filter(c => c.id !== id);
+        renderAbandonedCarts();
+      } catch (err) {
+        alert('Erro ao remover registro.');
+      }
+    }
+
+    async function triggerWhatsAppOrderStatus(orderId, eventKey) {
+      try {
+        const user = firebase.auth().currentUser;
+        if (!user || !orderId || !eventKey) return;
+        const idToken = await user.getIdToken();
+        fetch('https://malala-backend-1.onrender.com/api/whatsapp/order-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ orderId: String(orderId), eventKey })
+        }).catch(() => {});
+      } catch (err) {}
     }
 
     function calculateDashboard(filteredOrders) {
@@ -959,6 +1102,8 @@
         try { await db.collection('orders').doc(String(orderId)).update({ status: newStatus }); }
         catch (err) { console.warn("Atualizado localmente."); }
       }
+      if (newStatus === 'Pago') triggerWhatsAppOrderStatus(orderId, 'order_paid');
+      else if (newStatus === 'Cancelado') triggerWhatsAppOrderStatus(orderId, 'order_cancelled');
       if(!skipRender) renderOrdersTable();
     }
 
@@ -969,6 +1114,8 @@
         try { await db.collection('orders').doc(String(orderId)).update({ deliveryStatus: newStatus }); }
         catch (err) { console.warn("Atualizado localmente."); }
       }
+      if (newStatus === 'Preparando') triggerWhatsAppOrderStatus(orderId, 'order_packed');
+      else if (newStatus === 'Caminho') triggerWhatsAppOrderStatus(orderId, 'order_shipped');
       if(!skipRender) renderOrdersTable();
     }
 
