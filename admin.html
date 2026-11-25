@@ -521,7 +521,6 @@
             <label class="block text-xs font-bold text-gray-700 mb-1">Categoria</label>
             <select id="formCategory" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl" required>
               <option value="Perfumes">Perfumes</option>
-              <option value="Tecnologia">Tecnologia</option>
               <option value="Beleza">Beleza</option>
             </select>
           </div>
@@ -555,10 +554,6 @@
 
   <script>
     const defaultProducts = [
-      { id: 1, title: 'Smartwatch Series 9 Ultra', category: 'Tecnologia', price: 320.00, stock: 15, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Caixa de titânio, tela AMOLED com cores vivas e rastreamento completo de saúde e atividades esportivas.' },
-      { id: 2, title: 'Fone Bluetooth TWS Pro', category: 'Tecnologia', price: 180.00, stock: 30, badge: 'Oferta', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Cancelamento ativo de ruído, som espacial imersivo e bateria com autonomia de até 24 horas.' },
-      { id: 3, title: 'Caixa de Som Bluetooth Premium', category: 'Tecnologia', price: 250.00, stock: 8, badge: 'Alta Potência', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Resistente à água IPX7, graves profundos e conexão simultânea com múltiplos dispositivos.' },
-      { id: 11, title: 'Carregador Sem Fio MagSafe 15W Apple', category: 'Tecnologia', price: 160.00, stock: 50, badge: 'Mais Vendido', image: 'https://images.unsplash.com/photo-1622445268465-843d63d6f1bf?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Alinhamento magnético perfeito para recarga rápida sem fio em iPhones e AirPods.' },
       { id: 4, title: 'Kit Skincare Sérum Vitamina C', category: 'Beleza', price: 149.00, stock: 20, badge: 'Tendência', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Tratamento facial concentrado para firmeza, hidratação profunda e iluminação natural da pele.' },
       { id: 5, title: 'Modelador & Escova Secadora 3 em 1', category: 'Beleza', price: 210.00, stock: 12, badge: 'Destaque', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Seca, alisa e modela com tecnologia cerâmica de íons que protege os fios contra o frizz.' },
       { id: 12, title: 'Kit Pincéis Profissionais de Maquiagem', category: 'Beleza', price: 129.00, stock: 25, badge: 'Kit VIP', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Conjunto completo com cerdas macias hipoalergênicas para acabamento impecável.' },
@@ -626,9 +621,7 @@
       { id: 72, title: 'Ard Al Zaafaran Bint Hooran', category: 'Perfumes', price: 0.00, stock: 3, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
       { id: 73, title: 'Summit', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
       { id: 74, title: 'Maison Alhambra Salvo', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 75, title: 'Maison Alhambra Glacier Ultra', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 76, title: 'Cabo para iPhone', category: 'Tecnologia', price: 0.00, stock: 6, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' },
-      { id: 77, title: 'Fonte / Carregador de tomada para iPhone', category: 'Tecnologia', price: 0.00, stock: 7, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' }
+      { id: 75, title: 'Maison Alhambra Glacier Ultra', category: 'Perfumes', price: 0.00, stock: 2, badge: 'Lançamento', image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600', images: [], desc: 'Produto recém-adicionado.' }
     ]; 
     
     const defaultFirebaseConfig = {

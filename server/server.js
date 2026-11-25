@@ -667,7 +667,7 @@ app.get('/api/catalog/feed.xml', async (req, res) => {
       ].filter(Boolean).join('\n');
     }).join('\n');
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n  <channel>\n    <title>MALALA STORE - Catálogo Oficial</title>\n    <link>${escapeXml(STORE_BASE_URL)}/</link>\n    <description>Tecnologia, Beleza e Perfumaria Importada e Árabe.</description>\n${itemsXml}\n  </channel>\n</rss>\n`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n  <channel>\n    <title>MALALA STORE - Catálogo Oficial</title>\n    <link>${escapeXml(STORE_BASE_URL)}/</link>\n    <description>Perfumaria Importada, Árabe e Produtos de Beleza.</description>\n${itemsXml}\n  </channel>\n</rss>\n`;
 
     res.set('Content-Type', 'application/xml; charset=utf-8');
     res.set('Cache-Control', 'public, max-age=300');
