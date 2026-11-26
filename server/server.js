@@ -404,10 +404,340 @@ async function processAbandonedCarts() {
   return { processed, notified };
 }
 
+// ============================================================================
+// FRETE DOS CORREIOS (MELHOR ENVIO EM TEMPO REAL + FALLBACK CONFIGURÁVEL)
+// ============================================================================
+const DEFAULT_SHIPPING_CONFIG = {
+  originCep: String(process.env.ORIGIN_CEP || '20040002').replace(/\D/g, ''),
+  freeShippingThreshold: 0,
+  additionalDays: 1,
+  defaultPackage: {
+    weightKg: 0.45,
+    lengthCm: 18,
+    widthCm: 14,
+    heightCm: 10
+  },
+  fallbackRates: {
+    RJ:           { pacPrice: 18.90, pacDays: 3,  sedexPrice: 26.90, sedexDays: 1 },
+    SUDESTE:      { pacPrice: 24.90, pacDays: 5,  sedexPrice: 38.90, sedexDays: 2 },
+    SUL:          { pacPrice: 29.90, pacDays: 7,  sedexPrice: 49.90, sedexDays: 3 },
+    CENTRO_OESTE: { pacPrice: 31.90, pacDays: 7,  sedexPrice: 52.90, sedexDays: 3 },
+    NORDESTE:     { pacPrice: 36.90, pacDays: 9,  sedexPrice: 62.90, sedexDays: 4 },
+    NORTE:        { pacPrice: 42.90, pacDays: 12, sedexPrice: 74.90, sedexDays: 5 }
+  }
+};
+
+const UF_TO_REGION = {
+  RJ: 'RJ',
+  SP: 'SUDESTE', MG: 'SUDESTE', ES: 'SUDESTE',
+  PR: 'SUL', SC: 'SUL', RS: 'SUL',
+  DF: 'CENTRO_OESTE', GO: 'CENTRO_OESTE', MT: 'CENTRO_OESTE', MS: 'CENTRO_OESTE',
+  BA: 'NORDESTE', SE: 'NORDESTE', AL: 'NORDESTE', PE: 'NORDESTE', PB: 'NORDESTE', RN: 'NORDESTE', CE: 'NORDESTE', PI: 'NORDESTE', MA: 'NORDESTE',
+  AM: 'NORTE', PA: 'NORTE', AC: 'NORTE', RO: 'NORTE', RR: 'NORTE', AP: 'NORTE', TO: 'NORTE'
+};
+
+function guessRegionFromCep(cepDigits) {
+  const prefix2 = parseInt(cepDigits.slice(0, 2), 10);
+  if (prefix2 >= 20 && prefix2 <= 28) return { uf: 'RJ', region: 'RJ' };
+  if (prefix2 >= 1 && prefix2 <= 19) return { uf: 'SP', region: 'SUDESTE' };
+  if (prefix2 === 29) return { uf: 'ES', region: 'SUDESTE' };
+  if (prefix2 >= 30 && prefix2 <= 39) return { uf: 'MG', region: 'SUDESTE' };
+  if (prefix2 >= 40 && prefix2 <= 65) return { uf: 'BA', region: 'NORDESTE' };
+  if (prefix2 >= 66 && prefix2 <= 69) return { uf: 'PA', region: 'NORTE' };
+  if (prefix2 >= 70 && prefix2 <= 76) return { uf: 'DF', region: 'CENTRO_OESTE' };
+  if (prefix2 === 77) return { uf: 'TO', region: 'NORTE' };
+  if (prefix2 >= 78 && prefix2 <= 79) return { uf: 'MT', region: 'CENTRO_OESTE' };
+  if (prefix2 >= 80 && prefix2 <= 99) return { uf: 'PR', region: 'SUL' };
+  return { uf: '', region: 'SUDESTE' };
+}
+
+async function resolveDestinationFromCep(cepDigits) {
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 3500);
+    const resp = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, { signal: controller.signal });
+    clearTimeout(t);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && !data.erro && data.uf) {
+        const uf = String(data.uf).toUpperCase();
+        return {
+          uf,
+          city: data.localidade || '',
+          region: UF_TO_REGION[uf] || guessRegionFromCep(cepDigits).region
+        };
+      }
+    }
+  } catch (e) {
+    // Fallback silencioso pelo prefixo do CEP
+  }
+  const guessed = guessRegionFromCep(cepDigits);
+  return { uf: guessed.uf, city: '', region: guessed.region };
+}
+
+let cachedShippingConfig = null;
+let cachedShippingConfigAt = 0;
+
+async function getShippingConfig() {
+  const now = Date.now();
+  if (cachedShippingConfig && (now - cachedShippingConfigAt) < 30000) {
+    return cachedShippingConfig;
+  }
+
+  let merged = {
+    ...DEFAULT_SHIPPING_CONFIG,
+    defaultPackage: { ...DEFAULT_SHIPPING_CONFIG.defaultPackage },
+    fallbackRates: JSON.parse(JSON.stringify(DEFAULT_SHIPPING_CONFIG.fallbackRates))
+  };
+
+  if (db) {
+    try {
+      const snap = await db.collection('malala_store').doc('shipping').get();
+      if (snap.exists) {
+        const data = snap.data() || {};
+        if (data.originCep && String(data.originCep).replace(/\D/g, '').length === 8) {
+          merged.originCep = String(data.originCep).replace(/\D/g, '');
+        }
+        if (data.freeShippingThreshold !== undefined) {
+          merged.freeShippingThreshold = Math.max(0, Number(data.freeShippingThreshold) || 0);
+        }
+        if (data.additionalDays !== undefined) {
+          merged.additionalDays = Math.max(0, parseInt(data.additionalDays, 10) || 0);
+        }
+        if (data.defaultPackage && typeof data.defaultPackage === 'object') {
+          merged.defaultPackage = {
+            weightKg: Math.max(0.1, Number(data.defaultPackage.weightKg) || merged.defaultPackage.weightKg),
+            lengthCm: Math.max(16, Number(data.defaultPackage.lengthCm) || merged.defaultPackage.lengthCm),
+            widthCm: Math.max(11, Number(data.defaultPackage.widthCm) || merged.defaultPackage.widthCm),
+            heightCm: Math.max(2, Number(data.defaultPackage.heightCm) || merged.defaultPackage.heightCm)
+          };
+        }
+        if (data.fallbackRates && typeof data.fallbackRates === 'object') {
+          for (const key of Object.keys(merged.fallbackRates)) {
+            if (data.fallbackRates[key]) {
+              merged.fallbackRates[key] = {
+                pacPrice: Math.max(0, Number(data.fallbackRates[key].pacPrice) || merged.fallbackRates[key].pacPrice),
+                pacDays: Math.max(1, parseInt(data.fallbackRates[key].pacDays, 10) || merged.fallbackRates[key].pacDays),
+                sedexPrice: Math.max(0, Number(data.fallbackRates[key].sedexPrice) || merged.fallbackRates[key].sedexPrice),
+                sedexDays: Math.max(1, parseInt(data.fallbackRates[key].sedexDays, 10) || merged.fallbackRates[key].sedexDays)
+              };
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Falha ao carregar config de frete do Firestore, usando padrão:', err.message);
+    }
+  }
+
+  cachedShippingConfig = merged;
+  cachedShippingConfigAt = now;
+  return merged;
+}
+
+function buildPackageDimensions(totalQty, pkgCfg) {
+  const qty = Math.max(1, parseInt(totalQty, 10) || 1);
+  const weight = Number(Math.min(30, pkgCfg.weightKg + Math.max(0, qty - 1) * 0.35).toFixed(2));
+  const height = Math.min(40, Math.round(pkgCfg.heightCm + Math.max(0, qty - 1) * 2.5));
+  const width = Math.min(40, Math.round(pkgCfg.widthCm + (qty >= 4 ? 4 : 0)));
+  const length = Math.min(50, Math.round(pkgCfg.lengthCm + (qty >= 4 ? 4 : 0)));
+  return { weight, height, width, length };
+}
+
+async function quoteViaMelhorEnvio(originCep, destCep, pkg, subtotal, additionalDays) {
+  const token = String(process.env.MELHOR_ENVIO_TOKEN || '').trim();
+  if (!token) return null;
+
+  const isSandbox = String(process.env.MELHOR_ENVIO_SANDBOX || '').toLowerCase() === 'true';
+  const baseUrl = isSandbox
+    ? 'https://sandbox.melhorenvio.com.br'
+    : 'https://www.melhorenvio.com.br';
+
+  const payload = {
+    from: { postal_code: originCep },
+    to: { postal_code: destCep },
+    package: {
+      height: pkg.height,
+      width: pkg.width,
+      length: pkg.length,
+      weight: pkg.weight
+    },
+    options: {
+      insurance_value: Number(Math.max(25, Math.min(subtotal || 100, 10000)).toFixed(2)),
+      receipt: false,
+      own_hand: false
+    },
+    services: '1,2' // 1 = Correios PAC, 2 = Correios SEDEX
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const resp = await fetch(`${baseUrl}/api/v2/me/shipment/calculate`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'Malala Store (malalastore.pedidos@gmail.com)'
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      console.warn(`⚠️ Melhor Envio retornou HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+      return null;
+    }
+
+    const data = await resp.json();
+    const list = Array.isArray(data) ? data : [data];
+    const options = [];
+
+    for (const svc of list) {
+      if (!svc || svc.error) continue;
+      const rawPrice = Number(svc.custom_price ?? svc.price ?? 0);
+      const rawDays = parseInt(svc.custom_delivery_time ?? svc.delivery_time ?? 0, 10);
+      if (!Number.isFinite(rawPrice) || rawPrice <= 0) continue;
+
+      const nameUpper = String(svc.name || '').toUpperCase();
+      const code = nameUpper.includes('SEDEX') ? 'sedex' : (nameUpper.includes('PAC') ? 'pac' : `me_${svc.id}`);
+      const label = code === 'sedex' ? 'Correios SEDEX' : (code === 'pac' ? 'Correios PAC' : `Correios ${svc.name}`);
+
+      options.push({
+        id: code,
+        serviceId: String(svc.id || code),
+        code: code.toUpperCase(),
+        name: label,
+        company: (svc.company && svc.company.name) || 'Correios',
+        price: Number(rawPrice.toFixed(2)),
+        days: Math.max(1, rawDays + additionalDays),
+        isFree: false,
+        source: 'melhor_envio'
+      });
+    }
+
+    if (options.length === 0) return null;
+    options.sort((a, b) => a.price - b.price);
+    return options;
+  } catch (err) {
+    console.warn('⚠️ Falha na cotação Melhor Envio (usando fallback):', err.message);
+    return null;
+  }
+}
+
+async function calculateShippingQuotes(destCepRaw, items = [], subtotalOverride = null) {
+  const destCep = String(destCepRaw || '').replace(/\D/g, '');
+  if (destCep.length !== 8) {
+    return { valid: false, error: 'Informe um CEP válido com 8 dígitos.' };
+  }
+
+  const config = await getShippingConfig();
+  const totalQty = Array.isArray(items) && items.length > 0
+    ? items.reduce((acc, it) => acc + Math.max(1, parseInt(it.quantity ?? it.qty ?? 1, 10) || 1), 0)
+    : 1;
+
+  const subtotal = subtotalOverride !== null
+    ? Number(subtotalOverride)
+    : (Array.isArray(items)
+        ? Number(items.reduce((acc, it) => acc + (Number(it.price || 0) * Math.max(1, parseInt(it.quantity ?? it.qty ?? 1, 10) || 1)), 0).toFixed(2))
+        : 0);
+
+  const pkg = buildPackageDimensions(totalQty, config.defaultPackage);
+  const destination = await resolveDestinationFromCep(destCep);
+
+  let options = await quoteViaMelhorEnvio(config.originCep, destCep, pkg, subtotal, config.additionalDays);
+  let source = 'melhor_envio';
+
+  if (!options || options.length === 0) {
+    source = 'tabela_correios';
+    const rate = config.fallbackRates[destination.region] || config.fallbackRates.SUDESTE;
+    // Pequeno acréscimo de peso para pedidos com mais de 2 itens
+    const extraWeightSurcharge = Math.max(0, totalQty - 2) * 3.50;
+    const pacPrice = Number((rate.pacPrice + extraWeightSurcharge).toFixed(2));
+    const sedexPrice = Number((rate.sedexPrice + extraWeightSurcharge * 1.4).toFixed(2));
+
+    options = [
+      {
+        id: 'pac',
+        serviceId: 'pac',
+        code: 'PAC',
+        name: 'Correios PAC',
+        company: 'Correios',
+        price: pacPrice,
+        days: Math.max(1, rate.pacDays + config.additionalDays),
+        isFree: false,
+        source
+      },
+      {
+        id: 'sedex',
+        serviceId: 'sedex',
+        code: 'SEDEX',
+        name: 'Correios SEDEX',
+        company: 'Correios',
+        price: sedexPrice,
+        days: Math.max(1, rate.sedexDays + config.additionalDays),
+        isFree: false,
+        source
+      }
+    ];
+  }
+
+  // Regra opcional de Frete Grátis acima de R$ X (aplica na opção PAC / mais econômica)
+  if (config.freeShippingThreshold > 0 && subtotal >= config.freeShippingThreshold && options.length > 0) {
+    const pacOpt = options.find(o => o.id === 'pac') || options[0];
+    pacOpt.originalPrice = pacOpt.price;
+    pacOpt.price = 0;
+    pacOpt.isFree = true;
+  }
+
+  return {
+    valid: true,
+    source,
+    originCep: config.originCep,
+    destination: {
+      cep: destCep,
+      uf: destination.uf,
+      city: destination.city,
+      region: destination.region
+    },
+    freeShippingThreshold: config.freeShippingThreshold,
+    options
+  };
+}
+
+// ROTA DE STATUS DO FRETE (Informa ao Admin se Melhor Envio está ativo)
+app.get('/api/shipping/status', async (req, res) => {
+  const config = await getShippingConfig();
+  res.status(200).json({
+    melhorEnvioConfigured: Boolean(String(process.env.MELHOR_ENVIO_TOKEN || '').trim()),
+    melhorEnvioSandbox: String(process.env.MELHOR_ENVIO_SANDBOX || '').toLowerCase() === 'true',
+    originCep: config.originCep,
+    freeShippingThreshold: config.freeShippingThreshold
+  });
+});
+
+// ROTA DE COTAÇÃO DE FRETE (CARRINHO E CHECKOUT)
+app.post('/api/shipping/quote', async (req, res) => {
+  try {
+    const { cep, items, subtotal } = req.body || {};
+    const quote = await calculateShippingQuotes(cep, items, subtotal !== undefined ? Number(subtotal) : null);
+    if (!quote.valid) {
+      return res.status(400).json({ error: quote.error });
+    }
+    res.status(200).json({ success: true, ...quote });
+  } catch (err) {
+    console.error('❌ Erro ao calcular frete:', err);
+    res.status(500).json({ error: 'Não foi possível calcular o frete no momento. Tente novamente.' });
+  }
+});
+
 // ROTA 1: PIX
 app.post('/api/payments/pix', async (req, res) => {
   try {
-    const { items, payer, shippingAddress, abandonedCartSessionId } = req.body;
+    const { items, payer, shippingAddress, shipping, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
     if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
@@ -420,7 +750,25 @@ app.post('/api/payments/pix', async (req, res) => {
     }
 
     const officialItems = stockValidation.sanitizedItems;
-    const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+    const subtotalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+
+    // Recalcula e valida o frete no servidor para impedir manipulação de preço
+    const addressObj = payer.address || shippingAddress || null;
+    const destCep = String(addressObj?.cep || '').replace(/\D/g, '');
+    if (destCep.length !== 8) {
+      return res.status(400).json({ error: 'CEP de entrega inválido para cálculo do frete.' });
+    }
+
+    const quote = await calculateShippingQuotes(destCep, officialItems, subtotalAmount);
+    if (!quote.valid || !quote.options || quote.options.length === 0) {
+      return res.status(400).json({ error: quote.error || 'Não foi possível calcular o frete para o CEP informado.' });
+    }
+
+    const requestedShippingId = String(shipping?.id || 'pac').toLowerCase();
+    const chosenShipping = quote.options.find(o => String(o.id).toLowerCase() === requestedShippingId) || quote.options[0];
+    const shippingCost = Number(chosenShipping.price || 0);
+    const totalAmount = Number((subtotalAmount + shippingCost).toFixed(2));
+
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
     const cleanPhone = payer.phone ? String(payer.phone).trim() : '';
@@ -434,9 +782,21 @@ app.post('/api/payments/pix', async (req, res) => {
           email: cleanEmail,
           phone: cleanPhone,
           cpf: cleanCpf,
-          address: payer.address || shippingAddress || null
+          address: addressObj
         },
         items: officialItems,
+        subtotalAmount,
+        shippingCost,
+        shipping: {
+          id: chosenShipping.id,
+          code: chosenShipping.code,
+          name: chosenShipping.name,
+          company: chosenShipping.company,
+          price: shippingCost,
+          days: chosenShipping.days,
+          isFree: Boolean(chosenShipping.isFree),
+          source: chosenShipping.source
+        },
         totalAmount,
         paymentMethod: 'pix',
         tracking: trackingMeta,
@@ -490,6 +850,9 @@ app.post('/api/payments/pix', async (req, res) => {
     res.status(200).json({
       success: true,
       orderId: orderId,
+      subtotalAmount,
+      shippingCost,
+      totalAmount,
       qrCodeBase64: pixInfo.qr_code_base64,
       qrCodeCopyPaste: pixInfo.qr_code
     });
@@ -503,7 +866,7 @@ app.post('/api/payments/pix', async (req, res) => {
 // ROTA 2: CHECKOUT PRO (MERCADO PAGO)
 app.post('/api/payments/checkout-pro', async (req, res) => {
   try {
-    const { items, payer, shippingAddress, abandonedCartSessionId } = req.body;
+    const { items, payer, shippingAddress, shipping, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
 
     if (!payer || !payer.email || !payer.first_name || !payer.identification || !isValidCPF(payer.identification.number)) {
@@ -516,7 +879,25 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     }
 
     const officialItems = stockValidation.sanitizedItems;
-    const totalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+    const subtotalAmount = Number(officialItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2));
+
+    // Recalcula e valida o frete no servidor
+    const addressObj = payer.address || shippingAddress || null;
+    const destCep = String(addressObj?.cep || '').replace(/\D/g, '');
+    if (destCep.length !== 8) {
+      return res.status(400).json({ error: 'CEP de entrega inválido para cálculo do frete.' });
+    }
+
+    const quote = await calculateShippingQuotes(destCep, officialItems, subtotalAmount);
+    if (!quote.valid || !quote.options || quote.options.length === 0) {
+      return res.status(400).json({ error: quote.error || 'Não foi possível calcular o frete para o CEP informado.' });
+    }
+
+    const requestedShippingId = String(shipping?.id || 'pac').toLowerCase();
+    const chosenShipping = quote.options.find(o => String(o.id).toLowerCase() === requestedShippingId) || quote.options[0];
+    const shippingCost = Number(chosenShipping.price || 0);
+    const totalAmount = Number((subtotalAmount + shippingCost).toFixed(2));
+
     const cleanEmail = String(payer.email).trim().toLowerCase();
     const cleanCpf = String(payer.identification.number).replace(/\D/g, '');
     const cleanPhone = payer.phone ? String(payer.phone).trim() : '';
@@ -530,9 +911,21 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
           email: cleanEmail,
           phone: cleanPhone,
           cpf: cleanCpf,
-          address: payer.address || shippingAddress || null
+          address: addressObj
         },
         items: officialItems,
+        subtotalAmount,
+        shippingCost,
+        shipping: {
+          id: chosenShipping.id,
+          code: chosenShipping.code,
+          name: chosenShipping.name,
+          company: chosenShipping.company,
+          price: shippingCost,
+          days: chosenShipping.days,
+          isFree: Boolean(chosenShipping.isFree),
+          source: chosenShipping.source
+        },
         totalAmount,
         paymentMethod: 'mercado_pago_pro',
         tracking: trackingMeta,
@@ -558,6 +951,10 @@ app.post('/api/payments/checkout-pro', async (req, res) => {
     const preferenceData = {
       body: {
         items: preferenceItems,
+        shipments: {
+          cost: shippingCost,
+          mode: 'not_specified'
+        },
         payer: {
           name: String(payer.first_name).trim(),
           surname: String(payer.last_name || 'Cliente').trim(),

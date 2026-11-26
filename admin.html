@@ -117,6 +117,9 @@
       <button onclick="switchTab('abandoned')" id="tabAbandonedBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
         <i class="fa-solid fa-cart-arrow-down text-[#FF5500]"></i> Carrinhos Abandonados <span id="abandonedBadge" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
       </button>
+      <button onclick="switchTab('shipping')" id="tabShippingBtn" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2">
+        <i class="fa-solid fa-truck-fast text-[#FF5500]"></i> Frete & Correios
+      </button>
     </div>
 
     <!-- ABA 1: CATÁLOGO DE PRODUTOS -->
@@ -506,6 +509,96 @@
         </div>
       </div>
     </div>
+
+    <!-- ABA 5: FRETE & CORREIOS -->
+    <div id="tabShippingView" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+          <div>
+            <h3 class="text-base font-black text-gray-900 flex items-center gap-2">
+              <i class="fa-solid fa-truck-fast text-[#FF5500]"></i> Configuração de Frete (Correios / Melhor Envio)
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">Gerencie o CEP de origem, dimensões da caixa padrão, regra de frete grátis e a tabela de fallback dos Correios.</p>
+          </div>
+          <span id="melhorEnvioStatusBadge" class="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 border border-gray-200 shrink-0">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Verificando API...
+          </span>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-1">
+          <p class="font-extrabold flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-blue-600"></i> Como funciona a cotação em tempo real (Melhor Envio)</p>
+          <p class="text-[11px] text-blue-800 leading-relaxed">
+            Quando a variável <code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono font-bold">MELHOR_ENVIO_TOKEN</code> estiver configurada no Render, o site cota automaticamente <strong>PAC e SEDEX em tempo real</strong> com os valores reais dos Correios pelo Melhor Envio. Enquanto não estiver configurada (ou se a API oscilar), o checkout usa automaticamente a <strong>Tabela Fallback por Região</strong> abaixo para nunca travar vendas.
+          </p>
+        </div>
+
+        <form onsubmit="saveShippingConfig(event)" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">CEP de Origem (saída dos pedidos)</label>
+              <input type="text" id="shipOriginCep" placeholder="20040-002" maxlength="9" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Frete Grátis (PAC) acima de R$</label>
+              <input type="number" step="0.01" min="0" id="shipFreeThreshold" placeholder="0 (desativado)" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+              <span class="text-[10px] text-gray-400">Deixe 0 para sempre cobrar o frete.</span>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Dias extras de preparo/postagem</label>
+              <input type="number" min="0" max="10" id="shipAdditionalDays" value="1" class="w-full bg-gray-50 border border-gray-200 text-xs py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#FF5500]">
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-100">
+            <h4 class="text-xs font-extrabold text-gray-900 mb-2">Pacote Padrão (1 Perfume / Cosmético — usado na cotação Melhor Envio)</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-1">Peso (kg)</label>
+                <input type="number" step="0.05" min="0.1" id="shipPkgWeight" value="0.45" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-3 rounded-xl">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-1">Comprimento (cm)</label>
+                <input type="number" min="16" id="shipPkgLength" value="18" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-3 rounded-xl">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-1">Largura (cm)</label>
+                <input type="number" min="11" id="shipPkgWidth" value="14" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-3 rounded-xl">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-1">Altura (cm)</label>
+                <input type="number" min="2" id="shipPkgHeight" value="10" class="w-full bg-gray-50 border border-gray-200 text-xs py-2 px-3 rounded-xl">
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-100">
+            <h4 class="text-xs font-extrabold text-gray-900 mb-2">Tabela Fallback por Região (PAC e SEDEX)</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border border-gray-200 rounded-xl overflow-hidden">
+                <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-extrabold">
+                  <tr>
+                    <th class="p-2.5">Região</th>
+                    <th class="p-2.5">PAC (R$)</th>
+                    <th class="p-2.5">PAC (dias)</th>
+                    <th class="p-2.5">SEDEX (R$)</th>
+                    <th class="p-2.5">SEDEX (dias)</th>
+                  </tr>
+                </thead>
+                <tbody id="shippingFallbackTableBody" class="divide-y divide-gray-100 bg-white">
+                  <!-- Preenchido via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button type="submit" id="saveShippingBtn" class="bg-[#FF5500] hover:bg-[#E64A00] text-white font-bold px-6 py-3 rounded-xl text-xs transition-all shadow-md shadow-[#FF5500]/20 flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações de Frete
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <!-- MODAL DE ADICIONAR / EDITAR PRODUTO -->
@@ -881,6 +974,7 @@
       document.getElementById('tabOrdersView').classList.toggle('hidden', tab !== 'orders');
       document.getElementById('tabMarketingView').classList.toggle('hidden', tab !== 'marketing');
       document.getElementById('tabAbandonedView').classList.toggle('hidden', tab !== 'abandoned');
+      document.getElementById('tabShippingView').classList.toggle('hidden', tab !== 'shipping');
       
       const btnActive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-[#FF5500] text-white shadow-md shadow-[#FF5500]/20 flex items-center gap-2";
       const btnInactive = "px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 flex items-center gap-2";
@@ -889,11 +983,142 @@
       document.getElementById('tabOrdersBtn').className = tab === 'orders' ? btnActive : btnInactive;
       document.getElementById('tabMarketingBtn').className = tab === 'marketing' ? btnActive : btnInactive;
       document.getElementById('tabAbandonedBtn').className = tab === 'abandoned' ? btnActive : btnInactive;
+      document.getElementById('tabShippingBtn').className = tab === 'shipping' ? btnActive : btnInactive;
 
       if (tab === 'marketing') {
         refreshMarketingWidgets();
       } else if (tab === 'abandoned') {
         loadAbandonedCarts();
+      } else if (tab === 'shipping') {
+        loadShippingConfig();
+      }
+    }
+
+    const ADMIN_DEFAULT_SHIPPING = {
+      originCep: '20040002',
+      freeShippingThreshold: 0,
+      additionalDays: 1,
+      defaultPackage: { weightKg: 0.45, lengthCm: 18, widthCm: 14, heightCm: 10 },
+      fallbackRates: {
+        RJ:           { label: 'Rio de Janeiro (RJ)', pacPrice: 18.90, pacDays: 3,  sedexPrice: 26.90, sedexDays: 1 },
+        SUDESTE:      { label: 'Sudeste (SP, MG, ES)', pacPrice: 24.90, pacDays: 5,  sedexPrice: 38.90, sedexDays: 2 },
+        SUL:          { label: 'Sul (PR, SC, RS)', pacPrice: 29.90, pacDays: 7,  sedexPrice: 49.90, sedexDays: 3 },
+        CENTRO_OESTE: { label: 'Centro-Oeste (DF, GO, MT, MS)', pacPrice: 31.90, pacDays: 7,  sedexPrice: 52.90, sedexDays: 3 },
+        NORDESTE:     { label: 'Nordeste', pacPrice: 36.90, pacDays: 9,  sedexPrice: 62.90, sedexDays: 4 },
+        NORTE:        { label: 'Norte', pacPrice: 42.90, pacDays: 12, sedexPrice: 74.90, sedexDays: 5 }
+      }
+    };
+
+    function renderShippingFallbackTable(rates) {
+      const tbody = document.getElementById('shippingFallbackTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = Object.keys(ADMIN_DEFAULT_SHIPPING.fallbackRates).map(key => {
+        const def = ADMIN_DEFAULT_SHIPPING.fallbackRates[key];
+        const r = (rates && rates[key]) || def;
+        return `
+          <tr>
+            <td class="p-2.5 font-bold text-gray-800">${def.label}</td>
+            <td class="p-2"><input type="number" step="0.01" min="0" id="rate_${key}_pacPrice" value="${Number(r.pacPrice ?? def.pacPrice).toFixed(2)}" class="w-24 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs"></td>
+            <td class="p-2"><input type="number" min="1" id="rate_${key}_pacDays" value="${parseInt(r.pacDays ?? def.pacDays, 10)}" class="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs"></td>
+            <td class="p-2"><input type="number" step="0.01" min="0" id="rate_${key}_sedexPrice" value="${Number(r.sedexPrice ?? def.sedexPrice).toFixed(2)}" class="w-24 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs"></td>
+            <td class="p-2"><input type="number" min="1" id="rate_${key}_sedexDays" value="${parseInt(r.sedexDays ?? def.sedexDays, 10)}" class="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs"></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadShippingConfig() {
+      const badge = document.getElementById('melhorEnvioStatusBadge');
+      if (badge) {
+        badge.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 border border-gray-200 shrink-0';
+        badge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verificando API...';
+        fetch('https://malala-backend-1.onrender.com/api/shipping/status')
+          .then(r => r.json())
+          .then(st => {
+            if (st.melhorEnvioConfigured) {
+              badge.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0';
+              badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Melhor Envio Ativo${st.melhorEnvioSandbox ? ' (Sandbox)' : ''}`;
+            } else {
+              badge.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 shrink-0';
+              badge.innerHTML = '<i class="fa-solid fa-table"></i> Usando Tabela Fallback (Token Melhor Envio pendente)';
+            }
+          })
+          .catch(() => {
+            badge.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 border border-gray-200 shrink-0';
+            badge.innerHTML = '<i class="fa-solid fa-cloud"></i> Backend iniciando...';
+          });
+      }
+
+      let cfg = JSON.parse(JSON.stringify(ADMIN_DEFAULT_SHIPPING));
+      if (db) {
+        try {
+          const doc = await db.collection('malala_store').doc('shipping').get();
+          if (doc.exists) {
+            const d = doc.data() || {};
+            if (d.originCep) cfg.originCep = d.originCep;
+            if (d.freeShippingThreshold !== undefined) cfg.freeShippingThreshold = d.freeShippingThreshold;
+            if (d.additionalDays !== undefined) cfg.additionalDays = d.additionalDays;
+            if (d.defaultPackage) cfg.defaultPackage = { ...cfg.defaultPackage, ...d.defaultPackage };
+            if (d.fallbackRates) cfg.fallbackRates = { ...cfg.fallbackRates, ...d.fallbackRates };
+          }
+        } catch (err) {
+          console.warn('Erro ao ler config de frete:', err);
+        }
+      }
+
+      const cepDigits = String(cfg.originCep || '20040002').replace(/\D/g, '');
+      document.getElementById('shipOriginCep').value = cepDigits.length === 8 ? `${cepDigits.slice(0,5)}-${cepDigits.slice(5)}` : cepDigits;
+      document.getElementById('shipFreeThreshold').value = Number(cfg.freeShippingThreshold || 0);
+      document.getElementById('shipAdditionalDays').value = parseInt(cfg.additionalDays ?? 1, 10);
+      document.getElementById('shipPkgWeight').value = Number(cfg.defaultPackage.weightKg || 0.45);
+      document.getElementById('shipPkgLength').value = Number(cfg.defaultPackage.lengthCm || 18);
+      document.getElementById('shipPkgWidth').value = Number(cfg.defaultPackage.widthCm || 14);
+      document.getElementById('shipPkgHeight').value = Number(cfg.defaultPackage.heightCm || 10);
+      renderShippingFallbackTable(cfg.fallbackRates);
+    }
+
+    async function saveShippingConfig(e) {
+      e.preventDefault();
+      if (!db) return alert('Firebase não conectado.');
+
+      const originCep = document.getElementById('shipOriginCep').value.replace(/\D/g, '');
+      if (originCep.length !== 8) return alert('Informe um CEP de origem válido com 8 dígitos.');
+
+      const fallbackRates = {};
+      Object.keys(ADMIN_DEFAULT_SHIPPING.fallbackRates).forEach(key => {
+        fallbackRates[key] = {
+          pacPrice: Number(document.getElementById(`rate_${key}_pacPrice`).value) || 0,
+          pacDays: parseInt(document.getElementById(`rate_${key}_pacDays`).value, 10) || 1,
+          sedexPrice: Number(document.getElementById(`rate_${key}_sedexPrice`).value) || 0,
+          sedexDays: parseInt(document.getElementById(`rate_${key}_sedexDays`).value, 10) || 1
+        };
+      });
+
+      const payload = {
+        originCep,
+        freeShippingThreshold: Math.max(0, Number(document.getElementById('shipFreeThreshold').value) || 0),
+        additionalDays: Math.max(0, parseInt(document.getElementById('shipAdditionalDays').value, 10) || 0),
+        defaultPackage: {
+          weightKg: Math.max(0.1, Number(document.getElementById('shipPkgWeight').value) || 0.45),
+          lengthCm: Math.max(16, Number(document.getElementById('shipPkgLength').value) || 18),
+          widthCm: Math.max(11, Number(document.getElementById('shipPkgWidth').value) || 14),
+          heightCm: Math.max(2, Number(document.getElementById('shipPkgHeight').value) || 10)
+        },
+        fallbackRates,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      const btn = document.getElementById('saveShippingBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+      try {
+        await db.collection('malala_store').doc('shipping').set(payload, { merge: true });
+        alert('Configurações de frete salvas com sucesso! O novo cálculo já vale na loja.');
+      } catch (err) {
+        alert('Erro ao salvar configurações de frete: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Configurações de Frete';
       }
     }
 
@@ -1225,7 +1450,8 @@
            }
         }
 
-        const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${Number(i.quantity || 1)}x ${escapeHtml(i.title)}</span><span class="text-gray-600 font-mono">R$ ${(Number(i.price || 0)*Number(i.quantity || 1)).toFixed(2).replace('.',',')}</span></div>`).join('');
+        const itemsHtml = (ord.items || []).map(i => `<div class="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0"><span class="font-bold text-gray-800">${Number(i.quantity || 1)}x ${escapeHtml(i.title)}</span><span class="text-gray-600 font-mono">R$ ${(Number(i.price || 0)*Number(i.quantity || 1)).toFixed(2).replace('.',',')}</span></div>`).join('')
+          + (ord.shipping ? `<div class="flex justify-between text-xs py-1 pt-1.5 mt-1 border-t border-dashed border-gray-200 text-gray-600"><span class="font-bold"><i class="fa-solid fa-truck-fast text-[#FF5500] mr-1"></i>${escapeHtml(ord.shipping.name || 'Frete Correios')}${ord.shipping.days ? ` (${ord.shipping.days}d)` : ''}</span><span class="font-mono font-bold">${Number(ord.shippingCost || ord.shipping.price || 0) === 0 ? 'GRÁTIS' : 'R$ ' + Number(ord.shippingCost || ord.shipping.price || 0).toFixed(2).replace('.',',')}</span></div>` : '');
         const totalVal = Number(ord.total || ord.totalAmount || 0);
         const safeOrdId = escapeHtml(ord.id);
         const phoneDigits = String(payer.phone || '').replace(/\D/g, '');

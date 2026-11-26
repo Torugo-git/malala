@@ -219,7 +219,12 @@
             <span class="font-bold text-gray-800"><span class="text-gray-400 font-normal">${Number(i.quantity || 1)}x</span> ${escapeHtml(i.title)}</span>
             <span class="text-gray-600 font-mono">R$ ${(Number(i.price || 0) * Number(i.quantity || 1)).toFixed(2).replace('.', ',')}</span>
           </div>
-        `).join('');
+        `).join('') + (ord.shipping ? `
+          <div class="flex items-center justify-between text-xs py-2 border-t border-dashed border-gray-200 text-gray-600">
+            <span class="font-bold"><i class="fa-solid fa-truck-fast text-[#FF5500] mr-1"></i> ${escapeHtml(ord.shipping.name || 'Frete Correios')}</span>
+            <span class="font-mono font-bold">${Number(ord.shippingCost || ord.shipping.price || 0) === 0 ? '<span class="text-emerald-600">GRÁTIS</span>' : 'R$ ' + Number(ord.shippingCost || ord.shipping.price || 0).toFixed(2).replace('.', ',')}</span>
+          </div>
+        ` : '');
 
         return `
           <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5">

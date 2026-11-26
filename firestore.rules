@@ -13,6 +13,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Regras de Configuração de Frete (lido pelo Backend Admin SDK, editado pelo Admin)
+    match /malala_store/shipping {
+      allow read, write: if isAdmin();
+    }
+
     // Regras das Encomendas
     match /orders/{orderId} {
       allow create: if isAdmin();
