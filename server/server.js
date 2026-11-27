@@ -10,8 +10,48 @@ const { MercadoPagoConfig, Payment, Preference } = require('mercadopago');
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// CORS restrito ao domínio oficial (requisições sem Origin, como webhook/cron, continuam permitidas)
+const ALLOWED_ORIGINS = ['https://www.malalastore.com.br', 'https://malalastore.com.br'];
+if (process.env.EXTRA_CORS_ORIGINS) {
+  process.env.EXTRA_CORS_ORIGINS.split(',').forEach(o => o.trim() && ALLOWED_ORIGINS.push(o.trim()));
+}
+app.use(cors({
+  origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false)
+}));
+app.use(express.json({ limit: '100kb' }));
+
+// RATE LIMITER em memória (sem dependências extras)
+function createRateLimiter({ windowMs, max, message }) {
+  const hits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (v.reset <= now) hits.delete(k);
+  }, windowMs).unref();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = req.ip || 'unknown';
+    let e = hits.get(key);
+    if (!e || e.reset <= now) { e = { count: 0, reset: now + windowMs }; hits.set(key, e); }
+    e.count++;
+    if (e.count > max) {
+      res.setHeader('Retry-After', Math.ceil((e.reset - now) / 1000));
+      return res.status(429).json({ error: message || 'Muitas requisições. Tente novamente em instantes.' });
+    }
+    next();
+  };
+}
+const paymentLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 20, message: 'Muitas tentativas de pagamento. Aguarde alguns minutos.' });
+const cartLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 30 });
+const statusLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 60 });
 
 // 1. INICIALIZAÇÃO DO FIREBASE
 let db = null;
@@ -41,6 +81,7 @@ try {
 }
 
 // 2. INICIALIZAÇÃO DO MERCADO PAGO
+if (!process.env.MERCADOPAGO_ACCESS_TOKEN) console.error('🚨 CRÍTICO: MERCADOPAGO_ACCESS_TOKEN não configurado!');
 const accessTokenEnv = process.env.MERCADOPAGO_ACCESS_TOKEN ? process.env.MERCADOPAGO_ACCESS_TOKEN.trim() : '';
 const client = new MercadoPagoConfig({
   accessToken: accessTokenEnv || 'TEST-0000000000000000-000000-00000000000000000000000000000000-000000000',
@@ -74,19 +115,36 @@ async function validateAndSanitizeItems(requestedItems) {
     }
     
     const catalog = docSnap.data().products;
+    if (requestedItems.length > 50) {
+        return { valid: false, error: "Carrinho com itens demais." };
+    }
     const sanitizedItems = [];
-    
-    for (let item of requestedItems) {
-        const qty = parseInt(item.quantity, 10);
-        if (isNaN(qty) || qty < 1) {
-            return { valid: false, error: `Quantidade inválida para o item "${item.title || item.id}".` };
+
+    // Agrega quantidades por ID (impede burlar estoque repetindo o mesmo produto)
+    const aggregated = new Map();
+    for (const item of requestedItems) {
+        if (!item || typeof item !== 'object') return { valid: false, error: "Item inválido no carrinho." };
+        const qty = Number(item.quantity);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+            return { valid: false, error: `Quantidade inválida para o item "${String(item.title || item.id).slice(0, 80)}".` };
         }
+        const key = String(item.id);
+        const prev = aggregated.get(key);
+        aggregated.set(key, { id: item.id, title: item.title, quantity: (prev ? prev.quantity : 0) + qty });
+    }
+
+    for (let item of aggregated.values()) {
+        const qty = item.quantity;
+        if (qty > 99) return { valid: false, error: "Quantidade máxima por produto excedida." };
 
         const productInDb = catalog.find(p => String(p.id) === String(item.id));
         if (!productInDb) {
             return { valid: false, error: `Produto "${item.title || item.id}" não existe mais no catálogo.` };
         }
-        if (productInDb.stock < qty) {
+        if (productInDb.status === 'esgotado' || productInDb.status === 'consulte') {
+            return { valid: false, error: `O produto "${productInDb.title}" não está disponível para compra direta.` };
+        }
+        if (!(Number(productInDb.stock) >= qty)) {
             return { 
                 valid: false, 
                 error: `O produto "${productInDb.title}" esgotou ou não tem a quantidade solicitada (Estoque disponível: ${productInDb.stock}).` 
@@ -735,7 +793,7 @@ app.post('/api/shipping/quote', async (req, res) => {
 });
 
 // ROTA 1: PIX
-app.post('/api/payments/pix', async (req, res) => {
+app.post('/api/payments/pix', paymentLimiter, async (req, res) => {
   try {
     const { items, payer, shippingAddress, shipping, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
@@ -864,7 +922,7 @@ app.post('/api/payments/pix', async (req, res) => {
 });
 
 // ROTA 2: CHECKOUT PRO (MERCADO PAGO)
-app.post('/api/payments/checkout-pro', async (req, res) => {
+app.post('/api/payments/checkout-pro', paymentLimiter, async (req, res) => {
   try {
     const { items, payer, shippingAddress, shipping, abandonedCartSessionId } = req.body;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
@@ -1076,7 +1134,7 @@ app.get('/api/catalog/feed.xml', async (req, res) => {
 });
 
 // ROTA DE STATUS DO PEDIDO (POLLING PARA PIX E CONFIRMAÇÃO DE PURCHASE)
-app.get('/api/orders/:id/status', async (req, res) => {
+app.get('/api/orders/:id/status', statusLimiter, async (req, res) => {
   try {
     const orderId = req.params.id;
     if (!db) return res.status(500).json({ error: 'Erro interno: Banco de dados desconectado.' });
@@ -1111,6 +1169,21 @@ app.get('/api/orders/:id/status', async (req, res) => {
 });
 
 // ROTA 3: WEBHOOK MERCADO PAGO
+function verifyMercadoPagoSignature(req, paymentId) {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  if (!secret) return true; // verificação opcional: sempre revalidamos via API oficial
+  try {
+    const sig = req.get('x-signature') || '';
+    const requestId = req.get('x-request-id') || '';
+    const parts = Object.fromEntries(sig.split(',').map(p => p.trim().split('=').map(x => x.trim())));
+    if (!parts.ts || !parts.v1) return false;
+    const manifest = `id:${String(paymentId).toLowerCase()};request-id:${requestId};ts:${parts.ts};`;
+    const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+    const a = Buffer.from(expected), b = Buffer.from(parts.v1);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch (e) { return false; }
+}
+
 app.post('/api/webhooks/mercadopago', async (req, res) => {
   res.status(200).send('OK');
 
@@ -1120,6 +1193,10 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
     const topic = type || req.query.type || req.query.topic;
     
     if ((topic === 'payment' || topic === 'payment.updated' || topic === 'payment.created') && paymentId) {
+      if (!verifyMercadoPagoSignature(req, paymentId)) {
+        console.warn('⚠️ [WEBHOOK] Assinatura inválida, ignorando.');
+        return;
+      }
       const paymentInfo = await paymentClient.get({ id: paymentId });
       
       const orderId = paymentInfo.external_reference;
@@ -1140,6 +1217,26 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
           const orderData = orderSnap.data();
           if (orderData.status === 'Pago') {
             return; // Idempotência: evita desconto duplicado de estoque
+          }
+
+          // Valida moeda e valor realmente pago
+          const expectedAmount = Number(orderData.totalAmount || 0);
+          const paidAmount = Number(paymentInfo.transaction_amount || 0);
+          if (paymentInfo.currency_id && paymentInfo.currency_id !== 'BRL') {
+            console.error(`🚨 [WEBHOOK] Moeda inválida no pagamento ${paymentId}`);
+            return;
+          }
+          if (!(expectedAmount > 0) || paidAmount + 0.01 < expectedAmount) {
+            console.error(`🚨 [WEBHOOK] Valor pago (${paidAmount}) menor que o esperado (${expectedAmount}) no pedido ${orderId}`);
+            return;
+          }
+
+          // Anti-replay: um pagamento só pode aprovar um pedido
+          const lockRef = db.collection('processed_payments').doc(String(paymentId));
+          const lockSnap = await transaction.get(lockRef);
+          if (lockSnap.exists && lockSnap.data().orderId !== orderId) {
+            console.error(`🚨 [WEBHOOK] Pagamento ${paymentId} já usado em outro pedido`);
+            return;
           }
 
           const catalogSnap = await transaction.get(catalogRef);
@@ -1163,6 +1260,7 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
             }
           }
 
+          transaction.set(lockRef, { orderId, createdAt: FieldValue.serverTimestamp() });
           transaction.update(orderRef, {
             status: 'Pago',
             updatedAt: FieldValue.serverTimestamp()
@@ -1246,7 +1344,7 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
 });
 
 // ROTA 4: CAPTURA DE CARRINHO ABANDONADO (FRONTEND CHECKOUT)
-app.post('/api/abandoned-carts', async (req, res) => {
+app.post('/api/abandoned-carts', cartLimiter, async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: 'Banco de dados desconectado.' });
     const { sessionId, name, email, phone, items, totalAmount } = req.body || {};
@@ -1297,6 +1395,10 @@ app.post('/api/abandoned-carts', async (req, res) => {
 
 // ROTA 5: PROCESSAR CARRINHOS ABANDONADOS (CRON / UPTIMEROBOT)
 app.get('/api/cron/abandoned-carts', async (req, res) => {
+  if (process.env.CRON_SECRET) {
+    const provided = req.get('x-cron-secret') || req.query.secret;
+    if (provided !== process.env.CRON_SECRET) return res.status(401).json({ error: 'Não autorizado.' });
+  }
   const result = await processAbandonedCarts();
   res.status(200).json({ ok: true, ...result });
 });

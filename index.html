@@ -832,6 +832,18 @@
       return `<span class="text-[10px] sm:text-[11px] font-extrabold text-[#FF5500] mr-0.5">R$</span><span class="text-base sm:text-xl font-black text-gray-900 tracking-tight leading-none">${formattedInt}</span><span class="text-[10px] sm:text-xs font-extrabold text-gray-700">,${decPart}</span>`;
     }
 
+    function sanitizeUrl(url) {
+      const u = String(url || '').trim();
+      if (/^https?:\/\//i.test(u)) return u;
+      if (/^[\w\-./ %]+$/.test(u) && !/^\w+:/.test(u)) return u;
+      return '';
+    }
+
+    function consultProductWhatsAppById(id) {
+      const p = products.find(x => String(x.id) === String(id));
+      consultProductWhatsApp(p ? p.title : 'Produto');
+    }
+
     function consultProductWhatsApp(title) {
       if (window.MalalaTracking) {
         window.MalalaTracking.contact('whatsapp_consult', { content_name: title });
@@ -1966,7 +1978,7 @@
         const mainActionButtonHTML = isOutOfStock
             ? `<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center shrink-0" title="Esgotado"><i class="fa-solid fa-ban text-[11px] sm:text-xs"></i></button>`
             : isConsult
-              ? `<button onclick="consultProductWhatsApp('${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-2 sm:px-3 h-8 sm:h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-bold transition-all duration-300 shrink-0" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-xs sm:text-sm"></i><span class="hidden sm:inline">Consulte</span></button>`
+              ? `<button onclick="consultProductWhatsAppById(${Number(p.id)})" class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 px-2 sm:px-3 h-8 sm:h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-bold transition-all duration-300 shrink-0" title="Consultar valor no WhatsApp"><i class="fa-brands fa-whatsapp text-xs sm:text-sm"></i><span class="hidden sm:inline">Consulte</span></button>`
               : `<button onclick="addToCart(${Number(p.id)})" class="bg-gradient-to-r from-[#FF5500] to-[#E64A00] hover:from-gray-900 hover:to-gray-800 text-white shadow-md shadow-[#FF5500]/20 hover:shadow-gray-900/20 w-8 h-8 sm:w-10 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0" title="Adicionar ao Carrinho"><i class="fa-solid fa-cart-plus text-[11px] sm:text-xs"></i></button>`;
 
         return `
@@ -2008,7 +2020,7 @@
       renderPagination(totalItems, totalPages);
     }
 
-    function setModalImage(url) { document.getElementById('modalProductImg').src = url; }
+    function setModalImage(url) { document.getElementById('modalProductImg').src = sanitizeUrl(url); }
 
     function openProductModal(id) {
       const p = products.find(x => x.id === id);
@@ -2075,7 +2087,7 @@
       const thumbsContainer = document.getElementById('modalThumbnails');
       if (p.images && p.images.length > 0) {
           const allImages = [p.image, ...p.images];
-          thumbsContainer.innerHTML = allImages.map(imgUrl => `<button onclick="setModalImage('${escapeHtml(imgUrl)}')" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white"><img src="${escapeHtml(imgUrl)}" class="w-full h-full object-contain"></button>`).join('');
+          thumbsContainer.innerHTML = allImages.map(imgUrl => `<button data-img="${escapeHtml(sanitizeUrl(imgUrl))}" onclick="setModalImage(this.dataset.img)" class="w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#FF5500] focus:border-[#FF5500] transition-colors bg-white"><img src="${escapeHtml(sanitizeUrl(imgUrl))}" class="w-full h-full object-contain"></button>`).join('');
           thumbsContainer.classList.remove('hidden');
       } else {
           thumbsContainer.innerHTML = '';

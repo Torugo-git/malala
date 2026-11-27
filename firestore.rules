@@ -4,7 +4,7 @@ service cloud.firestore {
     
     // Função que define quem é o dono (Admin)
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'malalastore.pedidos@gmail.com';
+      return request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'malalastore.pedidos@gmail.com';
     }
 
     // Regras do Catálogo
@@ -21,13 +21,23 @@ service cloud.firestore {
     // Regras das Encomendas
     match /orders/{orderId} {
       allow create: if isAdmin();
-      allow read: if isAdmin() || (request.auth != null && resource.data.payer.email == request.auth.token.email);
+      allow read: if isAdmin() || (request.auth != null && request.auth.token.email_verified == true && resource.data.payer.email == request.auth.token.email);
       allow update, delete: if isAdmin();
     }
 
     // Regras de Carrinhos Abandonados (somente Admin lê/gerencia; captura via Backend Admin SDK)
     match /abandoned_carts/{cartId} {
       allow read, write: if isAdmin();
+    }
+
+    // Trava anti-replay de pagamentos (somente Backend Admin SDK)
+    match /processed_payments/{paymentId} {
+      allow read, write: if false;
+    }
+
+    // Negação padrão
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
