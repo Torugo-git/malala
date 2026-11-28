@@ -1283,20 +1283,77 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
             totalAmount: orderJustApproved.totalAmount
           });
 
-          // Enviar email de confirmação via EmailJS
+          // Enviar e-mail de confirmação (Brevo API — 300/dia grátis; fallback para EmailJS se BREVO_API_KEY não estiver definida)
           try {
-            const payerEmail = orderJustApproved.payer.email;
-            const orderSummaryText = (orderJustApproved.items || []).map(i => `${i.quantity || i.qty}x ${i.title}`).join(', ');
-            const emailjsPrivateKey = process.env.EMAILJS_PRIVATE_KEY;
+            const payerEmail = orderJustApproved.payer && orderJustApproved.payer.email;
+            const customerName = (orderJustApproved.payer && orderJustApproved.payer.name) || 'Cliente';
+            const itemsList = orderJustApproved.items || [];
+            const orderSummaryText = itemsList.map(i => `${i.quantity || i.qty || 1}x ${i.title}`).join(', ');
+            const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+            const brevoSenderEmail = (process.env.BREVO_SENDER_EMAIL || 'malalastore.pedidos@gmail.com').trim();
 
-            if (!emailjsPrivateKey) {
-              console.warn('⚠️ [EMAIL] EMAILJS_PRIVATE_KEY não configurada nas variáveis de ambiente.');
-            } else {
+            if (!payerEmail) {
+              console.warn(`⚠️ [EMAIL] Pedido ${orderId} sem e-mail do pagador.`);
+            } else if (brevoApiKey) {
+              const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+              const totalFormatted = Number(orderJustApproved.totalAmount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              const itemsRowsHtml = itemsList.map(i => {
+                const qty = Number(i.quantity || i.qty || 1);
+                const price = Number(i.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                return `<tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#222;">${qty}x ${esc(i.title)}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;color:#222;white-space:nowrap;">${price}</td></tr>`;
+              }).join('');
+
+              const htmlContent = `
+                <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #eee;border-radius:12px;overflow:hidden;">
+                  <div style="background:#FF5500;padding:24px;text-align:center;color:#ffffff;">
+                    <h1 style="margin:0;font-size:22px;letter-spacing:1px;">MALALA STORE</h1>
+                    <p style="margin:6px 0 0;font-size:14px;opacity:0.95;">Pagamento confirmado com sucesso!</p>
+                  </div>
+                  <div style="padding:24px;color:#333;font-size:15px;line-height:1.5;">
+                    <p style="margin-top:0;">Olá, <strong>${esc(customerName)}</strong>!</p>
+                    <p>Recebemos a confirmação do pagamento do seu pedido <strong>#${esc(orderId)}</strong>. Já estamos separando tudo com muito carinho para o envio.</p>
+                    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+                      ${itemsRowsHtml}
+                      <tr>
+                        <td style="padding:12px 0 0;font-weight:bold;color:#111;">Total pago</td>
+                        <td style="padding:12px 0 0;text-align:right;font-weight:bold;color:#FF5500;font-size:16px;">${totalFormatted}</td>
+                      </tr>
+                    </table>
+                    <div style="text-align:center;margin:24px 0;">
+                      <a href="${STORE_BASE_URL}/minha-conta.html" style="display:inline-block;background:#FF5500;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px;">Acompanhar meu pedido</a>
+                    </div>
+                    <p style="font-size:13px;color:#666;margin-bottom:0;">Qualquer dúvida, fale com a gente no WhatsApp: <a href="https://wa.me/5521992663800" style="color:#FF5500;">(21) 99266-3800</a>.</p>
+                  </div>
+                </div>`;
+
+              const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                  'accept': 'application/json',
+                  'content-type': 'application/json',
+                  'api-key': brevoApiKey
+                },
+                body: JSON.stringify({
+                  sender: { name: 'Malala Store', email: brevoSenderEmail },
+                  to: [{ email: payerEmail, name: customerName }],
+                  subject: `Pedido #${orderId} confirmado — Malala Store`,
+                  htmlContent
+                })
+              });
+
+              if (brevoRes.ok) {
+                console.log(`✉️ [EMAIL/BREVO] Confirmação enviada para ${payerEmail}`);
+              } else {
+                const errText = await brevoRes.text();
+                console.error(`❌ [EMAIL/BREVO] Falha ao enviar para ${payerEmail}:`, errText);
+              }
+            } else if (process.env.EMAILJS_PRIVATE_KEY) {
+              // Fallback legado para EmailJS enquanto BREVO_API_KEY não estiver configurada
               const emailjsPayload = {
                 service_id: process.env.EMAILJS_SERVICE_ID || 'service_fvb6yhg',
                 template_id: process.env.EMAILJS_TEMPLATE_ID || 'template_n10dl83',
                 user_id: process.env.EMAILJS_PUBLIC_KEY || 'vI8slPfRAcF3rOg0P',
-                accessToken: emailjsPrivateKey,
+                accessToken: process.env.EMAILJS_PRIVATE_KEY,
                 template_params: {
                   email: payerEmail,
                   order_id: orderId,
@@ -1311,14 +1368,16 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
               });
 
               if (emailjsRes.ok) {
-                console.log(`✉️ [EMAIL] Confirmação enviada para ${payerEmail}`);
+                console.log(`✉️ [EMAIL/EMAILJS] Confirmação enviada para ${payerEmail}`);
               } else {
                 const errText = await emailjsRes.text();
-                console.error(`❌ [EMAIL] Falha ao enviar para ${payerEmail}:`, errText);
+                console.error(`❌ [EMAIL/EMAILJS] Falha ao enviar para ${payerEmail}:`, errText);
               }
+            } else {
+              console.warn('⚠️ [EMAIL] Nenhuma chave configurada (BREVO_API_KEY ou EMAILJS_PRIVATE_KEY).');
             }
           } catch (emailErr) {
-            console.error('❌ Erro na chamada ao EmailJS:', emailErr);
+            console.error('❌ Erro ao enviar e-mail de confirmação:', emailErr);
           }
         }
       } else if (status === 'cancelled' || status === 'rejected') {
